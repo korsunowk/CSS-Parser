@@ -1,5 +1,5 @@
 def minification(pathlist):
-    fullcss = ''
+    fullcss, finalcss = '', ''
     for file in pathlist:
         with open(file, 'r+') as f:
             fullcss += f.read()
@@ -9,9 +9,8 @@ def minification(pathlist):
     for match in re.finditer(u"\/*[^}]+\*/", fullcss):
         fullcss = fullcss.replace(match.group(), "")
 
-    finalcss = ''
-    space = False
-    media = False
+    space,media = False, False
+    
     for i in range(len(fullcss)):
         if fullcss[i].isspace() is True and fullcss[i+1] == '{' or fullcss[i].isspace() is True and fullcss[i-1] == ':':
             continue
