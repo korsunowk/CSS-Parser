@@ -3,13 +3,6 @@ import os
 import re
 
 
-sys.setrecursionlimit(10000)
-
-css_files = []
-html_files = []
-ignore = []
-
-
 def load_ignore_files(path_to_project_folder):
     global ignore
     ignore.clear()
@@ -147,6 +140,12 @@ def find_dirs(home_directory, start=True, iteration=2, home='', old_dir=-1):
 
 
 if __name__ == '__main__':
+
+    sys.setrecursionlimit(10000)
+    
+    css_files = []
+    html_files = []
+    ignore = []
 
     project_dir = '/home/incode7/PycharmProjects/incodeParsing'
     find_dirs(project_dir)
