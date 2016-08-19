@@ -35,13 +35,44 @@ class CSSFile(MyFile):
 
 
 class HTMLFile(MyFile):
-    pass
+    def __init__(self, path):
+        with open(path, 'r+') as f:
+            self.html = f.read().replace('\t', '')
+        super().__init__(path)
+
+    # def find_selector(self, selector):
+    #     pass
+
+    def __str__(self):
+        return 'HTMLFile ' + self.name
+
+    def __unicode__(self):
+        return 'HTMLFile ' + self.name
+
+    def __repr__(self):
+        return 'HTMLFile ' + self.name
 
 
 class CSSSelector:
     def __init__(self, name, file):
-        self.name = name
+        i = 0
+        for space in name:
+            if space.isspace() is True:
+                i += 1
+            else:
+                break
+        j = len(name)
+        for space in name[::-1]:
+            if space.isspace() is True:
+                j -= 1
+            else:
+                break
+
+        self.name = name[i:j]
         self.files = list()
+        self.lines = list()
+        self.alone_selectors = list()
+        self.parsed = False
         self.usage = False
 
         self.add_file(file)
@@ -52,14 +83,101 @@ class CSSSelector:
     def add_file(self, file):
         self.files.append(file)
 
+    def add_selector(self, selector):
+        self.alone_selectors.append(AloneCSSSelector(selector))
+
+    def normalize_alone_selectors(self):
+        tmp = list()
+
+        for index_alone_selector in range(len(self.alone_selectors)):
+            if index_alone_selector > 0:
+                if CSSSelector.check_word(self.alone_selectors[index_alone_selector-1].name) is True and \
+                        CSSSelector.check_word(self.alone_selectors[index_alone_selector].name) is True:
+                    tmp.append(AloneCSSSelector('¿'))
+            tmp.append(self.alone_selectors[index_alone_selector])
+
+        self.alone_selectors = tmp
+
+    def parsing_alone_selectors(self):
+        if self.parsed is False:
+            first_bad_letter = 0
+            word = ''
+            if self.is_alone() is True:
+                self.alone_selectors.append(AloneCSSSelector(self.name))
+            else:
+                for i in range(len(self.name)):
+                    if self.check_letter(self.name[i]) is True:
+                        if self.check_word(word[:-1]) is True:
+                            if self.name[first_bad_letter:i].isspace() is False:
+                                self.add_selector(self.name[first_bad_letter:i])
+                        first_bad_letter = i
+                        word = ''
+                    else:
+                        word += self.name[i]
+
+                self.add_selector(self.name[first_bad_letter:])
+            self.normalize_alone_selectors()
+            self.parsed = True
+
+        print(str(self) + str(self.alone_selectors) + str(self.lines) + str(self.files))
+
+    def is_alone(self):
+        if self.name.find(' ') < 0 and self.name.find(',') < 0 and self.name.find('<') < 0\
+                and self.name.find('~') < 0:
+            return True
+
+        return False
+
+    def add_line(self, file):
+        index = 0
+
+        with open(file.path, 'r+') as f:
+            for line in f:
+                if line.find(self.name) >= 0 and line.find('{') > 0:
+                    self.lines.append((index+1, file))
+                index += 1
+
+    @staticmethod
+    def check_letter(letter):
+        if letter.isspace() is True or letter == ',' or letter == '>' or letter == '~' or letter == '+':
+            return True
+        return False
+
+    @staticmethod
+    def check_word(word):
+        for i in word:
+            if CSSSelector.check_letter(i) is True:
+                return False
+        return True
+
     def __str__(self):
-        return "'" + self.name + "'"
+        return "CSSSelector: '" + self.name + "'"
 
     def __unicode__(self):
-        return "'" + self.name + "'"
+        return "CSSSelector: '" + self.name + "'"
 
     def __repr__(self):
-        return "'" + self.name + "'"
+        return "CSSSelector: '" + self.name + "'"
+
+
+class AloneCSSSelector:
+    def __init__(self, name):
+        self.name = name.lstrip()
+        self.pseudo = self.has_pseudo()
+
+    def has_pseudo(self):
+        if self.name.find(':') > 0:
+            return True
+        return False
+
+    def __str__(self):
+        return "AloneCSSSelector: '" + self.name + "'"
+
+    def __unicode__(self):
+        return "AloneCSSSelector: '" + self.name + "'"
+
+    def __repr__(self):
+        return "AloneCSSSelector: '" + self.name + "'"
 
 
 class CSSRectifier:
@@ -89,10 +207,14 @@ class CSSRectifier:
             for i in self.css_selectors:
                 tmp.append(i.name)
             if selector not in tmp:
-                self.css_selectors.append(CSSSelector(selector, css_file))
+                new_selector = CSSSelector(selector, css_file)
+                new_selector.add_line(css_file)
+                self.css_selectors.append(new_selector)
             else:
                 i = tmp.index(selector)
+                print('___________________________________________________')
                 self.css_selectors[i].add_file(css_file)
+                self.css_selectors[i].add_line(css_file)
         else:
             self.css_selectors.append(CSSSelector(selector, css_file))
 
@@ -190,7 +312,6 @@ class CSSRectifier:
                     final_css += css_file[i]
 
             self.css_files.append(CSSFile(file.path, final_css))
-
         self.css_separation()
 
     def css_separation(self):
@@ -209,16 +330,6 @@ class CSSRectifier:
 
             for i in media_count:
                 minified_version.pop(minified_version.index(i))
-            tmp_classes = []
-            for i in minified_version:
-                if i.find(':') >= 0:
-                    tmp = i
-                    for match in re.finditer(u":[a-z]+", i):
-                        tmp = tmp.replace(match.group(), '')
-                    minified_version.append(tmp)
-                    tmp_classes.append(i)
-            for i in tmp_classes:
-                minified_version.pop(minified_version.index(i))
 
             clean_css_classes = []
             for i in minified_version:
@@ -228,12 +339,25 @@ class CSSRectifier:
             for selector in clean_css_classes:
                 self.add_selector(selector, css_file)
 
-        print('CSS separation display css_selectors: ' + str(self.css_selectors))
+            for selector in self.css_selectors:
+                selector.parsing_alone_selectors()
+
+    def create_html_files(self):
+        self.html_files = [HTMLFile(file.path) for file in self.get_html_files()]
+
+    def find_selectors_in_html(self):
+        self.create_html_files()
+
+        # for html_file in self.html_files:
+        #     print(html_file)
+        #     for selector in self.css_selectors:
+        #         pass
 
 
-sys.setrecursionlimit(10000)
+if __name__ == '__main__':
+    sys.setrecursionlimit(10000)
 
-project_dir = '/home/incode7/PycharmProjects/incodeParsing'
+    project_dir = '/home/incode7/PycharmProjects/incodeParsing'
 
-test_rectifier = CSSRectifier()
-test_rectifier.do_rectifier(project_dir)
+    test_rectifier = CSSRectifier()
+    test_rectifier.do_rectifier(project_dir)
