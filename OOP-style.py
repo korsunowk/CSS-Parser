@@ -3,6 +3,21 @@ import os
 import re
 
 
+class Check:
+    @staticmethod
+    def check_letter(letter):
+        if letter.isspace() is True or letter == ',' or letter == '>' or letter == '~' or letter == '+':
+            return True
+        return False
+
+    @staticmethod
+    def check_word(word):
+        for i in word:
+            if Check.check_letter(i) is True:
+                return False
+        return True
+
+
 class MyFile:
     def __init__(self, path):
         self.path = path
@@ -91,8 +106,8 @@ class CSSSelector:
 
         for index_alone_selector in range(len(self.alone_selectors)):
             if index_alone_selector > 0:
-                if CSSSelector.check_word(self.alone_selectors[index_alone_selector-1].name) is True and \
-                        CSSSelector.check_word(self.alone_selectors[index_alone_selector].name) is True:
+                if Check.check_word(self.alone_selectors[index_alone_selector-1].name) is True and \
+                                Check.check_word(self.alone_selectors[index_alone_selector].name) is True:
                     tmp.append(AloneCSSSelector('¿'))
             tmp.append(self.alone_selectors[index_alone_selector])
 
@@ -106,8 +121,8 @@ class CSSSelector:
                 self.alone_selectors.append(AloneCSSSelector(self.name))
             else:
                 for i in range(len(self.name)):
-                    if self.check_letter(self.name[i]) is True:
-                        if self.check_word(word[:-1]) is True:
+                    if Check.check_letter(self.name[i]) is True:
+                        if Check.check_word(word[:-1]) is True:
                             if self.name[first_bad_letter:i].isspace() is False:
                                 self.add_selector(self.name[first_bad_letter:i])
                         first_bad_letter = i
@@ -119,7 +134,7 @@ class CSSSelector:
             self.normalize_alone_selectors()
             self.parsed = True
 
-        print(str(self) + str(self.alone_selectors) + str(self.lines) + str(self.files))
+        print(str(self) + str(self.alone_selectors) + str(self.lines))
 
     def is_alone(self):
         if self.name.find(' ') < 0 and self.name.find(',') < 0 and self.name.find('<') < 0\
@@ -136,19 +151,6 @@ class CSSSelector:
                 if line.find(self.name) >= 0 and line.find('{') > 0:
                     self.lines.append((index+1, file))
                 index += 1
-
-    @staticmethod
-    def check_letter(letter):
-        if letter.isspace() is True or letter == ',' or letter == '>' or letter == '~' or letter == '+':
-            return True
-        return False
-
-    @staticmethod
-    def check_word(word):
-        for i in word:
-            if CSSSelector.check_letter(i) is True:
-                return False
-        return True
 
     def __str__(self):
         return "CSSSelector: '" + self.name + "'"
@@ -212,7 +214,6 @@ class CSSRectifier:
                 self.css_selectors.append(new_selector)
             else:
                 i = tmp.index(selector)
-                print('___________________________________________________')
                 self.css_selectors[i].add_file(css_file)
                 self.css_selectors[i].add_line(css_file)
         else:
