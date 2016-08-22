@@ -3,6 +3,10 @@ import os
 import re
 
 
+class CSSRectifierFinderError(Exception):
+    pass
+
+
 class Check:
     @staticmethod
     def check_letter(letter):
@@ -16,6 +20,22 @@ class Check:
             if Check.check_letter(i) is True:
                 return False
         return True
+
+    @staticmethod
+    def parsing_problem_selector(problem_selector, kind=False):
+        new_selector2 = list()
+        if kind is True:
+            new_selector2.append(problem_selector[0])
+            new_selector2.append(problem_selector[1][:problem_selector[1].find('=') - 1])
+            new_selector2.append(problem_selector[1][problem_selector[1].find('=') - 1] + '=')
+            new_selector2.append(problem_selector[1][problem_selector[1].find('=') + 1:])
+        else:
+            new_selector2.append(problem_selector[0])
+            new_selector2.append(problem_selector[1][:problem_selector[1].find('=')])
+            new_selector2.append('=')
+            new_selector2.append(problem_selector[1][problem_selector[1].find('=')+1:])
+
+        return new_selector2
 
 
 class MyFile:
@@ -54,9 +74,6 @@ class HTMLFile(MyFile):
         with open(path, 'r+') as f:
             self.html = f.read().replace('\t', '')
         super().__init__(path)
-
-    # def find_selector(self, selector):
-    #     pass
 
     def __str__(self):
         return 'HTMLFile ' + self.name
@@ -98,8 +115,8 @@ class CSSSelector:
     def add_file(self, file):
         self.files.append(file)
 
-    def add_selector(self, selector):
-        self.alone_selectors.append(AloneCSSSelector(selector))
+    def add_selector(self, selector_to_add):
+        self.alone_selectors.append(AloneCSSSelector(selector_to_add))
 
     def normalize_alone_selectors(self):
         tmp = list()
@@ -134,11 +151,12 @@ class CSSSelector:
             self.normalize_alone_selectors()
             self.parsed = True
 
-        print(str(self) + str(self.alone_selectors) + str(self.lines))
-
     def is_alone(self):
         if self.name.find(' ') < 0 and self.name.find(',') < 0 and self.name.find('<') < 0\
                 and self.name.find('~') < 0:
+            return True
+        if self.name.find('~=') > 0 or self.name.find('^=') > 0 or self.name.find('$=') > 0\
+                or self.name.find('*=') > 0:
             return True
 
         return False
@@ -203,21 +221,21 @@ class CSSRectifier:
                 files.append(file)
         return files
 
-    def add_selector(self, selector, css_file):
+    def add_selector(self, _selector, css_file):
         if len(self.css_selectors) > 0:
             tmp = list()
             for i in self.css_selectors:
                 tmp.append(i.name)
-            if selector not in tmp:
-                new_selector = CSSSelector(selector, css_file)
+            if _selector not in tmp:
+                new_selector = CSSSelector(_selector, css_file)
                 new_selector.add_line(css_file)
                 self.css_selectors.append(new_selector)
             else:
-                i = tmp.index(selector)
+                i = tmp.index(_selector)
                 self.css_selectors[i].add_file(css_file)
                 self.css_selectors[i].add_line(css_file)
         else:
-            self.css_selectors.append(CSSSelector(selector, css_file))
+            self.css_selectors.append(CSSSelector(_selector, css_file))
 
     def load_ignore_files(self):
         try:
@@ -225,10 +243,10 @@ class CSSRectifier:
                 for line in f:
                     self.ignore.append(line.rstrip())
         except FileNotFoundError:
-            with open('files to ignore.txt', 'w+') as f:
+            with open('files to ignore.txt', 'w') as f:
                 for line in ['bootstrap.css', 'bootstrap.min.css', 'bootstrap-responsive.css',
-                             'bootstrap-responsive.min.css', 'font-awesome.css]']:
-                    f.write(line)
+                             'bootstrap-responsive.min.css', 'font-awesome.css']:
+                    f.write(line+'\n')
             self.load_ignore_files()
 
     def do_rectifier(self, home_directory, start=True, iteration=2, home='', old_dir=-1):
@@ -251,7 +269,7 @@ class CSSRectifier:
                             # print(item)
                             self.files.append(MyFile(path=(os.getcwd() + '/' + item)))
                         # else:
-                            # print('IGNORE: ' + item)
+                        #     print('IGNORE: ' + item)
 
                     elif os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'html' or item[-3:] == 'htm'):
                         self.files.append(MyFile(path=(os.getcwd() + '/' + item)))
@@ -289,10 +307,10 @@ class CSSRectifier:
         for file in self.get_css_files():
             with open(file.path, 'r+') as f:
                 css_file = f.read()
-                css_file = css_file.replace("\t", "").replace("\n", "")  # Удаляем табуляцию и переход на новую строку.
+                css_file = css_file.replace("\t", "").replace("\n", "")
 
             for match in re.finditer(u"/*[^}]+\*/", css_file):
-                css_file = css_file.replace(match.group(), "")  # Удаляем комментарии.
+                css_file = css_file.replace(match.group(), "")
 
             space, media = False, False
             final_css = str()
@@ -337,23 +355,128 @@ class CSSRectifier:
                 if i not in clean_css_classes:
                     clean_css_classes.append(i)
 
-            for selector in clean_css_classes:
-                self.add_selector(selector, css_file)
+            for clean_selector in clean_css_classes:
+                self.add_selector(clean_selector, css_file)
 
-            for selector in self.css_selectors:
-                selector.parsing_alone_selectors()
+            for clean_selector in self.css_selectors:
+                clean_selector.parsing_alone_selectors()
+
+        self.find_selectors_in_html()
 
     def create_html_files(self):
         self.html_files = [HTMLFile(file.path) for file in self.get_html_files()]
+        return self.html_files
 
     def find_selectors_in_html(self):
-        self.create_html_files()
+        for html_file in self.create_html_files():
+            with open(html_file.path) as html:
+                html = html.read().replace('\t', '').replace('\n', '')
+                html = html.replace(re.search(u'<head>(.+?)</head>', html).group(), '')
+                for combo_selector in self.css_selectors:
+                    self.find_combo_selector_in_html(html, combo_selector)
 
-        # for html_file in self.html_files:
-        #     print(html_file)
-        #     for selector in self.css_selectors:
-        #         pass
+    @staticmethod
+    def find_combo_selector_in_html(html_file_as_string, combo_selector):
+        try:
+            if len(combo_selector.alone_selectors) == 1:
+                alone_selector = combo_selector.alone_selectors[0]
+                if alone_selector.name != '*':
+                    if alone_selector.pseudo is False:
+                        if alone_selector.name[0] != '.' and alone_selector.name[0] != '#':
+                            if alone_selector.name.find('[') == -1:
+                                if html_file_as_string.find('<'+alone_selector.name) > 0:
+                                    combo_selector.usage = True
+                                else:
+                                    combo_selector.usage = False
+                            else:
+                                new_selector = alone_selector.name.replace(']', '').split('[')
+                                if new_selector[1].find('=') > 0:
+                                    if new_selector[1][new_selector[1].find('=')-1] in ['~', '*', '$', '^']:
+                                        problem_selector = Check.parsing_problem_selector(new_selector, True)
+                                        str_to_search = u'<%s[^>]+>' % (problem_selector[0])
+                                        for find in re.findall(str_to_search, html_file_as_string):
+                                            if problem_selector[2] == '~=':
+                                                str_to_search = u'%s="[^"]+"' \
+                                                                % (problem_selector[1])
+                                                clean_find = re.search(str_to_search, find).group()[
+                                                    len(problem_selector[1] + '="'):-1
+                                                ]
+                                                for for_tilda in clean_find.split(' '):
+                                                    if for_tilda == problem_selector[3][1:-1]:
+                                                        combo_selector.usage = True
+                                                        break
+                                            elif problem_selector[2] == '*=':
+                                                if problem_selector[1][-1] != '-':
+                                                    if find.find(problem_selector[1]) > 0 \
+                                                            and find.find(problem_selector[3][1:-1]) > 0:
+                                                        combo_selector.usage = True
+                                                        break
+                                                else:
+                                                    if find.find(problem_selector[3][1:-1]) > 0 \
+                                                            and find.find(problem_selector[1]) > 0:
+                                                        combo_selector.usage = True
+                                                        break
 
+                                            elif problem_selector[2] == '$=':
+                                                str_to_search = u'%s="[^"]+"' \
+                                                                % (problem_selector[1])
+                                                clean_find = re.search(str_to_search, find).group()[
+                                                   len(problem_selector[1] + '="'):-1]
+
+                                                if clean_find.endswith(problem_selector[3][1:-1]) is True:
+                                                    combo_selector.usage = True
+                                                    break
+                                            elif problem_selector[2] == '^=':
+                                                str_to_search = u'%s="[^"]+"' \
+                                                                % (problem_selector[1])
+                                                if re.search(str_to_search, find).group()[
+                                                        len(problem_selector[1]+'="'):].find(
+                                                        problem_selector[3][1:-1]) == 0:
+                                                    combo_selector.usage = True
+                                                    break
+                                    else:
+                                        problem_selector = Check.parsing_problem_selector(new_selector)
+                                        str_to_search = u'<%s[^>]+>' % (problem_selector[0])
+
+                                        for find in re.findall(str_to_search, html_file_as_string):
+                                            if find.find(problem_selector[1]+problem_selector[2]) > 0 \
+                                                    and find.find(problem_selector[3]) > 0:
+                                                combo_selector.usage = True
+                                                break
+                                else:
+
+                                    new_selector = alone_selector.name.replace(']', '').split('[')
+                                    str_to_search = u'<%s[^>]+>' % (new_selector[0])
+
+                                    for find in re.findall(str_to_search, html_file_as_string):
+                                        if find.find(new_selector[1]) > 0:
+                                            combo_selector.usage = True
+                                            break
+                        else:
+                            if alone_selector.name[0] == '.':
+                                for find in re.findall(u'class="[^"]+"', html_file_as_string):
+                                    for one_class in find.replace('class=', '')[1:-1].split(' '):
+                                        if one_class == alone_selector.name[1:]:
+                                            combo_selector.usage = True
+                                            break
+                            elif alone_selector.name[0] == '#':
+                                for find in re.findall(u'id="[^"]+"', html_file_as_string):
+                                    for one_class in find.replace('id=', '')[1:-1].split(' '):
+                                        if one_class == alone_selector.name[1:]:
+                                            combo_selector.usage = True
+                                            break
+                    else:
+                        # has pseudo
+                        pass
+                else:
+                    combo_selector.usage = True
+            else:
+                # multiple classes
+                pass
+
+        except Exception:
+            raise CSSRectifierFinderError('Something went wrong with find.')
+        return True
 
 if __name__ == '__main__':
     sys.setrecursionlimit(10000)
@@ -362,3 +485,6 @@ if __name__ == '__main__':
 
     test_rectifier = CSSRectifier()
     test_rectifier.do_rectifier(project_dir)
+
+    for selector in test_rectifier.css_selectors:
+        print(str(selector) + ' ' + str(selector.usage))
