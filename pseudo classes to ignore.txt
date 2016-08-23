@@ -1,0 +1,12 @@
+:visited
+:valid
+:root
+:link
+:indeterminate
+:hover
+:focus
+:enabled
+:default
+:checked
+:active
+:invalid
