@@ -22,6 +22,12 @@ class Check:
                 return False
         return True
 
+    @staticmethod
+    def check_pseudo(selector_with_pseudo):
+        if selector_with_pseudo.find('::') >= 0:
+            return False
+        return True
+
 
 class Finder:
     ignore = list()
@@ -52,8 +58,8 @@ class Finder:
             with open('pseudo classes to ignore.txt', 'w') as f:
                 for line in [':visited', ':valid', ':root',
                              ':link', ':indeterminate', ':hover',
-                             ':focus', ':enabled', ':default',
-                             ':checked', ':active', ':invalid']:
+                             ':focus', ':default', ':checked',
+                             ':active', ':invalid']:
                     f.write(str(line)+'\n')
             Finder.load_ignore_pseudo()
 
@@ -99,7 +105,7 @@ class Finder:
                                     % (problem_selector[1])
                     if re.search(str_to_search, find).group()[
                        len(problem_selector[1] + '="'):].find(
-                        problem_selector[3][1:-1]) == 0:
+                            problem_selector[3][1:-1]) == 0:
                         combo_selector.usage = True
                         break
         else:
@@ -129,6 +135,90 @@ class Finder:
                     break
 
     @staticmethod
+    def find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector, html_file_as_string, find_word, find_range):
+        str_to_find = u'<%s>' % alone_selector[0]
+        array_to_find = re.findall(str_to_find, html_file_as_string)
+        find_iter = False
+        for find in array_to_find:
+            if find.find(find_word) in find_range:
+                find_iter = True
+                combo_selector.usage = True
+        if find_iter is not True:
+            str_to_find = u'<%s[^>]+>' % alone_selector[0]
+            array_to_find = re.findall(str_to_find, html_file_as_string)
+            for find in array_to_find:
+                if find.find(find_word) in find_range:
+                    combo_selector.usage = True
+
+    @staticmethod
+    def find_easy_not_ignore_pseudo(combo_selector, alone_selector, html_file_as_string):
+        # :read - only и :read - write
+        # :disabled и :enabled
+        # ::-moz - placeholder ::-webkit - input - placeholder
+        # :optional и :required
+
+        if alone_selector[1].find('read-write') >= 0:
+            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                      html_file_as_string, 'readonly', [-1])
+
+        elif alone_selector[1].find('read-only') >= 0:
+            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                      html_file_as_string, 'readonly', [i for i in range(999)])
+
+        elif alone_selector[1].find('enabled') >= 0:
+            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                      html_file_as_string, 'disabled', [-1])
+        elif alone_selector[1].find('disabled') >= 0:
+            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                      html_file_as_string, 'disabled', [i for i in range(999)])
+        elif alone_selector[1].find('placeholder') >= 0:
+            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                      html_file_as_string, 'placeholder', [i for i in range(999)])
+        elif alone_selector[1].find('optional') >= 0:
+            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                      html_file_as_string, 'required', [-1])
+        elif alone_selector[1].find('required') >= 0:
+            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                      html_file_as_string, 'required', [i for i in range(999)])
+
+    @staticmethod
+    def find_pseudo_selector(combo_selector, alone_selector, html_file_as_string):
+        if Check.check_pseudo(alone_selector.name) is True:
+            analyzed_alone_selector = alone_selector.name.split(':')
+            if analyzed_alone_selector[0] != '':
+                if ':' + analyzed_alone_selector[1] in Finder.ignore:
+                    Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0], html_file_as_string)
+                else:
+                    if analyzed_alone_selector[1] in ['read-write', 'required', 'optional', 'placeholder',
+                                                      'disabled', 'enabled', 'read-only']:
+                        Finder.find_easy_not_ignore_pseudo(combo_selector, analyzed_alone_selector, html_file_as_string)
+                    else:
+                        # Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
+                        #                                       html_file_as_string)
+                        pass
+            else:
+                # Если псевдокласс указывается без селектора, то он будет применяться ко всем элементам документа.
+                combo_selector.usage = True
+        else:
+            
+            analyzed_alone_selector = alone_selector.name.split('::')
+            if analyzed_alone_selector[1] in ['read-write', 'required', 'optional', 'placeholder',
+                                              'disabled', 'enabled', 'read-only']:
+                # Например ::-moz - placeholder ::-webkit - input - placeholder
+                Finder.find_easy_not_ignore_pseudo(combo_selector, analyzed_alone_selector, html_file_as_string)
+            else:
+                # Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
+                #                                       html_file_as_string)
+                pass
+
+    @staticmethod
+    def find_trivial_selector(combo_selector, alone_selector, html_file_as_string):
+        if html_file_as_string.find('<' + alone_selector) > 0:
+            combo_selector.usage = True
+        else:
+            combo_selector.usage = False
+
+    @staticmethod
     def find_selectors_in_html(html_file_as_string, combo_selector):
         try:
             if len(combo_selector.alone_selectors) == 1:
@@ -137,10 +227,7 @@ class Finder:
                     if alone_selector.pseudo is False:
                         if alone_selector.name[0] != '.' and alone_selector.name[0] != '#':
                             if alone_selector.name.find('[') == -1:
-                                if html_file_as_string.find('<'+alone_selector.name) > 0:
-                                    combo_selector.usage = True
-                                else:
-                                    combo_selector.usage = False
+                                Finder.find_trivial_selector(combo_selector, alone_selector.name, html_file_as_string)
                             else:
                                 new_selector = alone_selector.name.replace(']', '').split('[')
                                 if new_selector[1].find('=') > 0:
@@ -159,8 +246,7 @@ class Finder:
                             elif alone_selector.name[0] == '#':
                                 Finder.find_id_selector(combo_selector, alone_selector, html_file_as_string)
                     else:
-                        # has pseudo
-                        pass
+                        Finder.find_pseudo_selector(combo_selector, alone_selector, html_file_as_string)
                 else:
                     combo_selector.usage = True
             else:
@@ -323,7 +409,7 @@ class AloneCSSSelector:
         self.pseudo = self.has_pseudo()
 
     def has_pseudo(self):
-        if self.name.find(':') > 0:
+        if self.name.find(':') >= 0:
             return True
         return False
 
