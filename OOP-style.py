@@ -187,169 +187,234 @@ class Finder:
                     combo_selector.usage = True
 
     @staticmethod
-    def find_hard_not_ignore_pseudo_helper(combo_selector, analyzed_alone_selector, html_file_as_string):
-        if analyzed_alone_selector == '.':
-            return Finder.find_class_selector(analyzed_alone_selector[1:], html_file_as_string, True)
-        elif analyzed_alone_selector == '#':
-            return Finder.find_id_selector(analyzed_alone_selector[1:], html_file_as_string, True)
+    def find_hard_not_ignore_pseudo_helper(combo_selector, analyzed_alone_selector, html_file_as_string,
+                                           return_find=True):
+        if analyzed_alone_selector[0] == '.':
+            return Finder.find_class_selector(analyzed_alone_selector[1:], html_file_as_string, return_find)
+        elif analyzed_alone_selector[0] == '#':
+            return Finder.find_id_selector(analyzed_alone_selector[1:], html_file_as_string, return_find)
         else:
-            return Finder.find_trivial_selector(combo_selector, analyzed_alone_selector, html_file_as_string, True)
+            return Finder.find_trivial_selector(combo_selector, analyzed_alone_selector, html_file_as_string,
+                                                return_find)
 
     @staticmethod
-    def find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector, html_file_as_string):
-        if analyzed_alone_selector[1] == 'empty':
-            str_to_find = u'<%s></%s>' % (analyzed_alone_selector[0], analyzed_alone_selector[0])
-            for find in re.findall(str_to_find, html_file_as_string):
-                if find:
-                    combo_selector.usage = True
-        elif analyzed_alone_selector[1] in ['first-child', 'last-child']\
-                or analyzed_alone_selector[1].find('nth-child') > 0\
-                or analyzed_alone_selector[1].find('nth-last-child') > 0:
-            result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
-                                                               analyzed_alone_selector[0], html_file_as_string)
-            if result is not False:
-                str_to_find = '%s[^/]+/' % result
+    def find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector, html_file_as_string, multiple=False):
+        if analyzed_alone_selector[1].find(':') == -1 and analyzed_alone_selector[0].find(':') == -1:
+            if analyzed_alone_selector[1] == 'empty':
+                str_to_find = u'<%s></%s>' % (analyzed_alone_selector[0], analyzed_alone_selector[0])
                 for find in re.findall(str_to_find, html_file_as_string):
-                    if find.count('>') > 1:
-                        combo_selector.usage = True
-        elif analyzed_alone_selector[1] in ['first-of-type', 'last-of-type']\
-                or analyzed_alone_selector[1].find('nth-of-type') > 0\
-                or analyzed_alone_selector[1].find('nth-last-of-type') > 0:
-
-            result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
-                                                               analyzed_alone_selector[0], html_file_as_string)
-            if result is not False and result is not None:
-                if result[-1] != '/':
-                    str_to_find = '<[^/]+%s' % result
-                    for find in re.findall(str_to_find, html_file_as_string):
-                        str_to_find2 = find
-                        for i in range(html_file_as_string.find(find) + len(find), len(html_file_as_string)):
-                            str_to_find2 += html_file_as_string[i]
-                            if str_to_find2.find('</') > 0:
-                                combo_selector.usage = True
-                                break
-                else:
-                    str_to_find = result
-                    for i in range(html_file_as_string.find(result) + len(result), len(html_file_as_string)):
-                        str_to_find += html_file_as_string[i]
-                        if str_to_find.count('</') > 1:
-                            combo_selector.usage = True
-                            break
-        elif analyzed_alone_selector[1] in ['only-child', 'only-of-type']:
-            result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
-                                                               analyzed_alone_selector[0], html_file_as_string)
-            if result is not False and result is not None:
-                str_to_find = result
-                if analyzed_alone_selector[1] == 'only-child':
-                    for i in range(html_file_as_string.find(str_to_find) + len(str_to_find), len(html_file_as_string)):
-                        str_to_find += html_file_as_string[i]
-                        if str_to_find.find('</') > 0:
-                            combo_selector.usage = True
-                            break
-                else:
-                    begin_str, end_str = '', ''
-                    for i in reversed(range(html_file_as_string.find(str_to_find))):
-                        begin_str += html_file_as_string[i]
-                        if begin_str.find('</') >= 0:
-                            break
+                    if find:
+                        if multiple is True:
+                            return True
                         else:
-                            if begin_str.find('<') >= 0:
-                                for j in range(html_file_as_string.find(str_to_find)+len(str_to_find),
-                                               len(html_file_as_string)):
-                                    end_str += html_file_as_string[j]
-                                    if end_str.find('<') >= 0:
-                                        if html_file_as_string[j+1] == '/':
-                                            combo_selector.usage = True
-                                            break
-                                        else:
-                                            break
+                            combo_selector.usage = True
+            elif analyzed_alone_selector[1] in ['first-child', 'last-child']\
+                    or analyzed_alone_selector[1].find('nth-child') > 0\
+                    or analyzed_alone_selector[1].find('nth-last-child') > 0:
+                result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
+                                                                   analyzed_alone_selector[0], html_file_as_string)
+                if result is not False:
+                    str_to_find = '%s[^/]+/' % result
+                    for find in re.findall(str_to_find, html_file_as_string):
+                        if find.count('>') > 1:
+                            if multiple is True:
+                                return True
+                            else:
+                                combo_selector.usage = True
+            elif analyzed_alone_selector[1] in ['first-of-type', 'last-of-type']\
+                    or analyzed_alone_selector[1].find('nth-of-type') > 0\
+                    or analyzed_alone_selector[1].find('nth-last-of-type') > 0:
+
+                result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
+                                                                   analyzed_alone_selector[0], html_file_as_string)
+                if result is not False and result is not None:
+                    if result[-1] != '/':
+                        str_to_find = '<[^/]+%s' % result
+                        for find in re.findall(str_to_find, html_file_as_string):
+                            str_to_find2 = find
+                            for i in range(html_file_as_string.find(find) + len(find), len(html_file_as_string)):
+                                str_to_find2 += html_file_as_string[i]
+                                if str_to_find2.find('</') > 0:
+                                    if multiple is True:
+                                        return True
+                                    else:
+                                        combo_selector.usage = True
+                                    break
+                    else:
+                        str_to_find = result
+                        for i in range(html_file_as_string.find(result) + len(result), len(html_file_as_string)):
+                            str_to_find += html_file_as_string[i]
+                            if str_to_find.count('</') > 1:
+                                if multiple is True:
+                                    return True
+                                else:
+                                    combo_selector.usage = True
                                 break
+            elif analyzed_alone_selector[1] in ['only-child', 'only-of-type']:
+                result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
+                                                                   analyzed_alone_selector[0], html_file_as_string)
+                if result is not False and result is not None:
+                    str_to_find = result
+                    if analyzed_alone_selector[1] == 'only-child':
+                        for i in range(html_file_as_string.find(str_to_find) + len(str_to_find),
+                                       len(html_file_as_string)):
+                            str_to_find += html_file_as_string[i]
+                            if str_to_find.find('</') > 0:
+                                if multiple is True:
+                                    return True
+                                else:
+                                    combo_selector.usage = True
+                                break
+                    else:
+                        begin_str, end_str = '', ''
+                        for i in reversed(range(html_file_as_string.find(str_to_find))):
+                            begin_str += html_file_as_string[i]
+                            if begin_str.find('</') >= 0:
+                                break
+                            else:
+                                if begin_str.find('<') >= 0:
+                                    for j in range(html_file_as_string.find(str_to_find)+len(str_to_find),
+                                                   len(html_file_as_string)):
+                                        end_str += html_file_as_string[j]
+                                        if end_str.find('<') >= 0:
+                                            if html_file_as_string[j+1] == '/':
+                                                if multiple is True:
+                                                    return True
+                                                else:
+                                                    combo_selector.usage = True
+                                                break
+                                            else:
+                                                break
+                                    break
 
-        elif analyzed_alone_selector[1].find('not') >= 0:
-            if analyzed_alone_selector[1].find('[') > 0:
-                hard_selector_in_bracket = analyzed_alone_selector[1][4:-1]
+            elif analyzed_alone_selector[1].find('not') >= 0:
+                if analyzed_alone_selector[1].find('[') > 0:
+                    hard_selector_in_bracket = analyzed_alone_selector[1][4:-1]
 
-                if hard_selector_in_bracket.find('=') > 0:
-                    result = Finder.find_selector_with_equal(combo_selector,
-                                                             [analyzed_alone_selector[0],
-                                                              hard_selector_in_bracket[1:-1]],
-                                                             html_file_as_string, return_find=True)
+                    if hard_selector_in_bracket.find('=') > 0:
+                        result = Finder.find_selector_with_equal(combo_selector,
+                                                                 [analyzed_alone_selector[0],
+                                                                  hard_selector_in_bracket[1:-1]],
+                                                                 html_file_as_string, return_find=True)
+                    else:
+                        result = Finder.find_selector_without_equal(combo_selector,
+                                                                    hard_selector_in_bracket,
+                                                                    html_file_as_string, return_find=True)
+                    if result:
+                        if result.find(hard_selector_in_bracket):
+                            if multiple is True:
+                                return True
+                            else:
+                                combo_selector.usage = True
                 else:
-                    result = Finder.find_selector_without_equal(combo_selector,
-                                                                hard_selector_in_bracket,
+
+                    selector_in_bracket = analyzed_alone_selector[1][4:-1]
+                    if selector_in_bracket[0] != '.' and selector_in_bracket[0] != '#':
+                        # Если : или :: в скобках not().
+                        if selector_in_bracket.find('::') >= 0:
+                            dot = '::'
+                        else:
+                            dot = ':'
+                        if ':' + analyzed_alone_selector[1].split(dot)[1][:-1] not in Finder.ignore:
+                            Finder.find_easy_not_ignore_pseudo(combo_selector,
+                                                               [analyzed_alone_selector[0],
+                                                                analyzed_alone_selector[1].split(dot)[1][:-1]],
+                                                               html_file_as_string)
+                        else:
+                            Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
+                                                         html_file_as_string)
+                    else:
+                        if selector_in_bracket[0] == '.':
+                            result = Finder.find_class_selector(selector_in_bracket[1:],
                                                                 html_file_as_string, return_find=True)
-                if result:
-                    if result.find(hard_selector_in_bracket):
-                        combo_selector.usage = True
-            else:
+                            if result:
+                                str_to_search = '%s[^>]+>' % analyzed_alone_selector[0]
+                                for find in re.findall(str_to_search, html_file_as_string):
+                                    if find.find(result) >= 0:
+                                        if multiple is True:
+                                            return True
+                                        else:
+                                            combo_selector.usage = True
+                        elif selector_in_bracket[0] == '#':
+                            result = Finder.find_id_selector(selector_in_bracket[1:],
+                                                             html_file_as_string, return_find=True)
+                            if result:
+                                str_to_search = '%s[^>]+>' % analyzed_alone_selector[0]
+                                for find in re.findall(str_to_search, html_file_as_string):
+                                    if find.find(result) >= 0:
+                                        if multiple is True:
+                                            return True
+                                        else:
+                                            combo_selector.usage = True
 
-                selector_in_bracket = analyzed_alone_selector[1][4:-1]
-                if selector_in_bracket[0] != '.' and selector_in_bracket[0] != '#':
-                    # Если : или :: в скобках not().
-                    if selector_in_bracket.find('::') >= 0:
-                        dot = '::'
-                    else:
-                        dot = ':'
-                    if ':' + analyzed_alone_selector[1].split(dot)[1][:-1] not in Finder.ignore:
-                        Finder.find_easy_not_ignore_pseudo(combo_selector,
-                                                           [analyzed_alone_selector[0],
-                                                            analyzed_alone_selector[1].split(dot)[1][:-1]],
-                                                           html_file_as_string)
-                    else:
-                        Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
-                                                     html_file_as_string)
+            elif analyzed_alone_selector[1].find('lang') >= 0:
+                lang = analyzed_alone_selector[1].replace(')', '').split('(')
+                lang = lang[0]+'="'+lang[1]+'"'
+                result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
+                                                                   analyzed_alone_selector[0], html_file_as_string)
+                if result is not False:
+                    str_to_find = '%s[^>]+>' % result
+                    for find in re.findall(str_to_find, html_file_as_string):
+                        if find.find(lang) > 0:
+                            if multiple is True:
+                                return True
+                            else:
+                                combo_selector.usage = True
+            elif analyzed_alone_selector[1] == 'target':
+                if analyzed_alone_selector[0].find('.') != 0 and analyzed_alone_selector[0].find('#') != 0:
+                    str_to_search = '<%s[^>]+>' % analyzed_alone_selector[0]
+                    for find in re.findall(str_to_search, html_file_as_string):
+                        if find.find('id=') > 0:
+                            if multiple is True:
+                                return True
+                            else:
+                                combo_selector.usage = True
                 else:
-                    if selector_in_bracket[0] == '.':
-                        result = Finder.find_class_selector(selector_in_bracket[1:],
-                                                            html_file_as_string, return_find=True)
-                        if result:
-                            str_to_search = '%s[^>]+>' % analyzed_alone_selector[0]
-                            for find in re.findall(str_to_search, html_file_as_string):
-                                if find.find(result) >= 0:
+                    result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
+                                                                       analyzed_alone_selector[0], html_file_as_string)
+                    if result:
+                        str_to_search = u'<[^>]+>'
+                        for find in re.findall(str_to_search, html_file_as_string):
+                            if find.find(result) > 0 and find.count('id=') > 1:
+                                if multiple is True:
+                                    return True
+                                else:
                                     combo_selector.usage = True
-                    elif selector_in_bracket[0] == '#':
-                        result = Finder.find_id_selector(selector_in_bracket[1:],
-                                                         html_file_as_string, return_find=True)
-                        if result:
-                            str_to_search = '%s[^>]+>' % analyzed_alone_selector[0]
-                            for find in re.findall(str_to_search, html_file_as_string):
-                                if find.find(result) >= 0:
-                                    combo_selector.usage = True
-
-        elif analyzed_alone_selector[1].find('lang') >= 0:
-            lang = analyzed_alone_selector[1].replace(')', '').split('(')
-            lang = lang[0]+'="'+lang[1]+'"'
-            result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
-                                                               analyzed_alone_selector[0], html_file_as_string)
-            if result is not False:
-                str_to_find = '%s[^>]+>' % result
-                for find in re.findall(str_to_find, html_file_as_string):
-                    if find.find(lang) > 0:
-                        combo_selector.usage = True
-        elif analyzed_alone_selector[1] == 'target':
-            if analyzed_alone_selector[0].find('.') != 0 and analyzed_alone_selector[0].find('#') != 0:
-                str_to_search = '<%s[^>]+>' % analyzed_alone_selector[0]
-                for find in re.findall(str_to_search, html_file_as_string):
-                    if find.find('id=') > 0:
-                        combo_selector.usage = True
-            else:
+            elif analyzed_alone_selector[1] == 'first-letter' or analyzed_alone_selector[1] == 'first-line':
                 result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
                                                                    analyzed_alone_selector[0], html_file_as_string)
                 if result:
-                    str_to_search = u'<[^>]+>'
+                    str_to_search = u'%s[^/]+/' % result
                     for find in re.findall(str_to_search, html_file_as_string):
-                        if find.find(result) > 0 and find.count('id=') > 1:
-                            combo_selector.usage = True
-        elif analyzed_alone_selector[1] == 'first-letter' or analyzed_alone_selector[1] == 'first-line':
-            result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
-                                                               analyzed_alone_selector[0], html_file_as_string)
-            if result:
-                str_to_search = u'%s[^/]+/' % result
-                for find in re.findall(str_to_search, html_file_as_string):
-                    if find[find.rfind('>')+1:find.rfind('</')].find('>') == -1\
-                            or find[find.rfind('>')+1:find.rfind('</')].find('<') == -1:
-                        if len(find[find.rfind('>')+1:find.rfind('</')]) != 0:
-                            combo_selector.usage = True
+                        if find[find.rfind('>')+1:find.rfind('</')].find('>') == -1\
+                                or find[find.rfind('>')+1:find.rfind('</')].find('<') == -1:
+                            if len(find[find.rfind('>')+1:find.rfind('</')]) != 0:
+                                if multiple is True:
+                                    return True
+                                else:
+                                    combo_selector.usage = True
+        else:
+            alone_pseudos = list()
+            if analyzed_alone_selector[0].find(':') >= 0:
+                alone_pseudos.append(analyzed_alone_selector[0].split(':')[1])
+                alone_pseudos.append(analyzed_alone_selector[1])
+            elif analyzed_alone_selector[1].find(':') >= 0:
+                for alone_pseudo in analyzed_alone_selector[1].split(':'):
+                    alone_pseudos.append(alone_pseudo)
+            results = list()
+            for alone_pseudo in alone_pseudos:
+                if ':' + alone_pseudo in Finder.ignore:
+                    results.append(Finder.find_hard_not_ignore_pseudo_helper(combo_selector, analyzed_alone_selector[0],
+                                                                             html_file_as_string, False))
+                else:
+                    if Finder.find_easy_not_ignore_pseudo(combo_selector, [analyzed_alone_selector[0],
+                                                                           alone_pseudo], html_file_as_string) is False:
+                        results.append(Finder.find_hard_not_ignore_pseudo(combo_selector,
+                                                                          [analyzed_alone_selector[0], alone_pseudo],
+                                                                          html_file_as_string, multiple=True))
+
+            if None not in results:
+                combo_selector.usage = True
 
     @staticmethod
     def find_easy_not_ignore_pseudo(combo_selector, alone_selector, html_file_as_string):
@@ -383,6 +448,8 @@ class Finder:
         elif alone_selector[1].find('selection') >= 0:
             Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
                                                       html_file_as_string, 'selection', [i for i in range(999)])
+        else:
+            return False
 
     @staticmethod
     def find_pseudo_selector(combo_selector, alone_selector, html_file_as_string):
@@ -418,7 +485,8 @@ class Finder:
                 #                                       html_file_as_string)
                 ignored = False
                 for ignore in Finder.ignore:
-                    if analyzed_alone_selector[1].find(ignore[1:]) > 0:
+                    if analyzed_alone_selector[1].find(ignore[1:]) > 0 and analyzed_alone_selector[1].find(':') == -1\
+                                and analyzed_alone_selector[1].find('::') == -1:
                         ignored = True
                         Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
                                                      html_file_as_string)
@@ -426,10 +494,13 @@ class Finder:
                     Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector, html_file_as_string)
 
     @staticmethod
-    def find_trivial_selector(combo_selector, alone_selector, html_file_as_string, return_find=False):
+    def find_trivial_selector(combo_selector, alone_selector, html_file_as_string, return_find=False, multiple=False):
         if return_find is False:
             if html_file_as_string.find('<' + alone_selector) > 0:
-                combo_selector.usage = True
+                if multiple is True:
+                    return True
+                else:
+                    combo_selector.usage = True
         else:
             str_to_find = u'<%s[^/]+/' % alone_selector
             for find in re.findall(str_to_find, html_file_as_string):
