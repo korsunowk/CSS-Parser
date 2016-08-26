@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
 import re
+import time
+start_time = time.time()
 
 
 class CSSRectifierFinderError(Exception):
@@ -73,7 +76,7 @@ class Finder:
             Finder.load_ignore_pseudo()
 
     @staticmethod
-    def find_selector_with_equal(combo_selector, new_selector, html_file_as_string, return_find=False):
+    def find_selector_with_equal(combo_selector, new_selector, html_file_as_string, return_find=False, multiple=False):
         if new_selector[1][new_selector[1].find('=') - 1] in ['~', '*', '$', '^']:
             problem_selector = Finder.parsing_problem_selector(new_selector, True)
             str_to_search = u'<%s[^>]+>' % (problem_selector[0])
@@ -87,6 +90,8 @@ class Finder:
                                  ]
                     for for_tilda in clean_find.split(' '):
                         if for_tilda == problem_selector[3][1:-1]:
+                            if multiple is True:
+                                return True
                             if return_find is not False:
                                 return find
                             else:
@@ -95,6 +100,8 @@ class Finder:
                     if problem_selector[1][-1] != '-':
                         if find.find(problem_selector[1]) > 0 \
                                 and find.find(problem_selector[3][1:-1]) > 0:
+                            if multiple is True:
+                                return True
                             if return_find is not False:
                                 return find
                             else:
@@ -102,6 +109,8 @@ class Finder:
                     else:
                         if find.find(problem_selector[3][1:-1]) > 0 \
                                 and find.find(problem_selector[1]) > 0:
+                            if multiple is True:
+                                return True
                             if return_find is not False:
                                 return find
                             else:
@@ -114,6 +123,8 @@ class Finder:
                                  len(problem_selector[1] + '="'):-1]
 
                     if clean_find.endswith(problem_selector[3][1:-1]) is True:
+                        if multiple is True:
+                            return True
                         if return_find is not False:
                             return find
                         else:
@@ -124,6 +135,8 @@ class Finder:
                     if re.search(str_to_search, find).group()[
                        len(problem_selector[1] + '="'):].find(
                             problem_selector[3][1:-1]) == 0:
+                        if multiple is True:
+                            return True
                         if return_find is not False:
                             return find
                         else:
@@ -142,6 +155,8 @@ class Finder:
             for find in re.findall(str_to_search, html_file_as_string):
                 if find.find(problem_selector[1] + problem_selector[2]) > 0 \
                         and find.find(problem_selector[3]) > 0:
+                    if multiple is True:
+                        return True
                     if return_find is not False:
                         return find
                     else:
@@ -171,12 +186,14 @@ class Finder:
 
     @staticmethod
     def find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector, html_file_as_string,
-                                           find_word, find_range):
+                                           find_word, find_range, multiple=True):
         str_to_find = u'<%s>' % alone_selector[0]
         array_to_find = re.findall(str_to_find, html_file_as_string)
         find_iter = False
         for find in array_to_find:
             if find.find(find_word) in find_range:
+                if multiple is True:
+                    return True
                 find_iter = True
                 combo_selector.usage = True
         if find_iter is not True:
@@ -184,6 +201,8 @@ class Finder:
             array_to_find = re.findall(str_to_find, html_file_as_string)
             for find in array_to_find:
                 if find.find(find_word) in find_range:
+                    if multiple is True:
+                        return True
                     combo_selector.usage = True
 
     @staticmethod
@@ -404,8 +423,8 @@ class Finder:
             results = list()
             for alone_pseudo in alone_pseudos:
                 if ':' + alone_pseudo in Finder.ignore:
-                    results.append(Finder.find_hard_not_ignore_pseudo_helper(combo_selector, analyzed_alone_selector[0],
-                                                                             html_file_as_string, False))
+                    results.append(Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
+                                                                html_file_as_string, False, True))
                 else:
                     if Finder.find_easy_not_ignore_pseudo(combo_selector, [analyzed_alone_selector[0],
                                                                            alone_pseudo], html_file_as_string) is False:
@@ -417,60 +436,113 @@ class Finder:
                 combo_selector.usage = True
 
     @staticmethod
-    def find_easy_not_ignore_pseudo(combo_selector, alone_selector, html_file_as_string):
+    def find_easy_not_ignore_pseudo(combo_selector, alone_selector, html_file_as_string, multiple=False):
         # :read - only и :read - write
         # :disabled и :enabled
         # ::-moz - placeholder ::-webkit - input - placeholder
         # :optional и :required
+        # ::selection
         if alone_selector[1].find('read-write') >= 0:
-            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
-                                                      html_file_as_string, 'readonly', [-1])
+            if multiple is True:
+                return Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                                 html_file_as_string, 'readonly', [-1], True)
+            else:
+                Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                          html_file_as_string, 'readonly', [-1])
 
         elif alone_selector[1].find('read-only') >= 0:
-            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
-                                                      html_file_as_string, 'readonly', [i for i in range(999)])
+            if multiple is True:
+                return Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                                 html_file_as_string, 'readonly',
+                                                                 [i for i in range(999)], True)
+            else:
+                Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                          html_file_as_string, 'readonly', [i for i in range(999)])
 
         elif alone_selector[1].find('enabled') >= 0:
-            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
-                                                      html_file_as_string, 'disabled', [-1])
+            if multiple is True:
+                return Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                                 html_file_as_string, 'disabled', [-1], True)
+            else:
+                Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                          html_file_as_string, 'disabled', [-1])
         elif alone_selector[1].find('disabled') >= 0:
-            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
-                                                      html_file_as_string, 'disabled', [i for i in range(999)])
+            if multiple is True:
+                return Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                                 html_file_as_string, 'disabled',
+                                                                 [i for i in range(999)], True)
+            else:
+                Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                          html_file_as_string, 'disabled', [i for i in range(999)])
         elif alone_selector[1].find('placeholder') >= 0:
-            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
-                                                      html_file_as_string, 'placeholder', [i for i in range(999)])
+            if multiple is True:
+                return Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                                 html_file_as_string, 'placeholder',
+                                                                 [i for i in range(999)], True)
+            else:
+                Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                          html_file_as_string, 'placeholder', [i for i in range(999)])
         elif alone_selector[1].find('optional') >= 0:
-            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
-                                                      html_file_as_string, 'required', [-1])
+            if multiple is True:
+                return Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                                 html_file_as_string, 'required', [-1], True)
+            else:
+                Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                          html_file_as_string, 'required', [-1])
         elif alone_selector[1].find('required') >= 0:
-            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
-                                                      html_file_as_string, 'required', [i for i in range(999)])
+            if multiple is True:
+                return Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                                 html_file_as_string, 'required',
+                                                                 [i for i in range(999)], True)
+            else:
+                Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                          html_file_as_string, 'required', [i for i in range(999)])
         elif alone_selector[1].find('selection') >= 0:
-            Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
-                                                      html_file_as_string, 'selection', [i for i in range(999)])
+            if multiple is True:
+                return Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                                 html_file_as_string, 'selection',
+                                                                 [i for i in range(999)], True)
+            else:
+                Finder.find_easy_not_ignore_pseudo_helper(alone_selector, combo_selector,
+                                                          html_file_as_string, 'selection', [i for i in range(999)])
         else:
             return False
 
     @staticmethod
-    def find_pseudo_selector(combo_selector, alone_selector, html_file_as_string):
+    def find_pseudo_selector(combo_selector, alone_selector, html_file_as_string, multiple=False):
         if Check.check_pseudo(alone_selector.name) is True:
             analyzed_alone_selector = alone_selector.name.split(':', 1)
             if analyzed_alone_selector[0] != '':
                 if ':' + analyzed_alone_selector[1] in Finder.ignore:
-                    Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
-                                                 html_file_as_string)
+                    if multiple is True:
+                        return Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
+                                                            html_file_as_string, True)
+                    else:
+                        Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
+                                                     html_file_as_string)
                 else:
                     if analyzed_alone_selector[1] in ['read-write', 'required', 'optional', 'placeholder',
                                                       'disabled', 'enabled', 'read-only']:
-                        Finder.find_easy_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
-                                                           html_file_as_string)
+                        if multiple is True:
+                            return Finder.find_easy_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
+                                                                      html_file_as_string, True)
+                        else:
+                            Finder.find_easy_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
+                                                               html_file_as_string)
                     else:
-                        Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
-                                                           html_file_as_string)
+                        if multiple is True:
+                            return Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
+                                                                      html_file_as_string, True)
+                        else:
+                            Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
+                                                               html_file_as_string)
 
             else:
                 # Если псевдокласс указывается без селектора, то он будет применяться ко всем элементам документа.
-                combo_selector.usage = True
+                if multiple is True:
+                    return True
+                else:
+                    combo_selector.usage = True
         else:
             analyzed_alone_selector = alone_selector.name.split('::')
 
@@ -478,8 +550,11 @@ class Finder:
                                               'disabled', 'enabled', 'read-only'] \
                     or analyzed_alone_selector[1].find('placeholder') > 0:
                 # Например ::-moz - placeholder ::-webkit - input - placeholder
-                Finder.find_easy_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
-                                                   html_file_as_string)
+                if multiple is True:
+                    return Finder.find_easy_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
+                                                              html_file_as_string, True)
+                else:
+                    Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector, html_file_as_string)
             else:
                 # Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
                 #                                       html_file_as_string)
@@ -488,27 +563,108 @@ class Finder:
                     if analyzed_alone_selector[1].find(ignore[1:]) > 0 and analyzed_alone_selector[1].find(':') == -1\
                                 and analyzed_alone_selector[1].find('::') == -1:
                         ignored = True
-                        Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
-                                                     html_file_as_string)
+                        if multiple is True:
+                            return Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
+                                                                html_file_as_string, True)
+                        else:
+                            Finder.find_trivial_selector(combo_selector, analyzed_alone_selector[0],
+                                                         html_file_as_string)
                 if ignored is False:
-                    Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector, html_file_as_string)
+                    if multiple is True:
+                        return Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
+                                                                  html_file_as_string, True)
+                    else:
+                        Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
+                                                           html_file_as_string)
 
     @staticmethod
     def find_trivial_selector(combo_selector, alone_selector, html_file_as_string, return_find=False, multiple=False):
-        if return_find is False:
-            if html_file_as_string.find('<' + alone_selector) > 0:
-                if multiple is True:
-                    return True
+        if alone_selector.find('#') > 0 or alone_selector.find('.') > 0:
+            if alone_selector.find('#') > 0 and alone_selector.find('.') > 0:
+                if alone_selector.find('#') < alone_selector.find('.'):
+                    # id and class in one selector
+                    trivial_selector = alone_selector[0:alone_selector.find('#')]
+                    selector_id = alone_selector[len(trivial_selector):][
+                                  :alone_selector.find('.') - len(trivial_selector)]
+                    selector_classes = alone_selector[len(trivial_selector)+len(selector_id):]
                 else:
-                    combo_selector.usage = True
+                    trivial_selector = alone_selector[0:alone_selector.find('.')]
+                    selector_id = str()
+                    for i in range(len(alone_selector[alone_selector.find('#'):])):
+                        if alone_selector[alone_selector.find('#'):][i] == '.':
+                            selector_id = alone_selector[alone_selector.find('#'):alone_selector.find('#')+i]
+                            break
+                    selector_classes = alone_selector.replace(trivial_selector, '').replace(selector_id, '')
+
+                if selector_classes.count('.') > 1:
+                    clean_selector_classes = list()
+                    for selector_class in selector_classes.split('.'):
+                        if selector_class != "":
+                            clean_selector_classes.append(selector_class)
+                else:
+                    clean_selector_classes = [selector_classes[1:]]
+
+                finded_id = False
+                finded_classes = list()
+                str_to_find = u'<%s[^>]+>' % trivial_selector
+                for find in re.findall(str_to_find, html_file_as_string):
+                    if find.find('class=') > 0 and find.find('id=') > 0:
+                        for find_class in re.findall(u'class="[^"]+"', find):
+                            for one_class in clean_selector_classes:
+                                if find_class.find(one_class) > 0:
+                                    finded_classes.append(True)
+                                else:
+                                    continue
+                        for find_id in re.findall(u'id="[^"]+"', find):
+                            if find_id.find(selector_id[1:]) > 0:
+                                finded_id = True
+                                break
+
+                if len(finded_classes) == len(clean_selector_classes) and finded_id is True:
+                    if multiple is True:
+                        return True
+                    else:
+                        combo_selector.usage = True
+                else:
+                    return None
+            else:
+                # id or class in selector
+                if alone_selector.find('#') > 0:
+                    find_id = Finder.find_id_selector(alone_selector[alone_selector.find('#')+1:],
+                                                      html_file_as_string, True)
+                    for find in re.findall(u'%s[^>]+>' % alone_selector[:alone_selector.find('#')],
+                                           html_file_as_string):
+                            if find_id is not False and find.find(find_id) > 0:
+                                if multiple is True:
+                                    return True
+                                else:
+                                    combo_selector.usage = True
+                elif alone_selector.find('.') > 0:
+                    find_class = Finder.find_class_selector(alone_selector[alone_selector.find('.')+1:],
+                                                            html_file_as_string, True)
+                    for find in re.findall(u'%s[^>]+>' % alone_selector[:alone_selector.find('.')],
+                                           html_file_as_string):
+                        if find_class is not False and find.find(find_class) > 0:
+                            if multiple is True:
+                                return True
+                            else:
+                                combo_selector.usage = True
         else:
-            str_to_find = u'<%s[^/]+/' % alone_selector
-            for find in re.findall(str_to_find, html_file_as_string):
-                return find
+            if return_find is False:
+                if html_file_as_string.find('<' + alone_selector) > 0:
+                    if multiple is True:
+                        return True
+                    else:
+                        combo_selector.usage = True
+            else:
+                str_to_find = u'<%s[^/]+/' % alone_selector
+                for find in re.findall(str_to_find, html_file_as_string):
+                    return find
+        return False
 
     @staticmethod
     def find_selector_without_equal(combo_selector, alone_selector, html_file_as_string,
-                                    return_find=False):
+                                    return_find=False, multiple=False):
         new_selector = alone_selector.replace(']', '').split('[')
         str_to_search = u'<%s[^>]+>' % (new_selector[0])
         if new_selector[1].find('-*'):
@@ -520,51 +676,84 @@ class Finder:
                 if return_find is not False:
                     return find
                 else:
-                    combo_selector.usage = True
+                    if multiple is True:
+                        return True
+                    else:
+                        combo_selector.usage = True
         return False
 
     @staticmethod
-    def find_selectors_in_html(html_file_as_string, combo_selector):
+    def find_selectors_in_html(html_file_as_string, combo_selector, multiple=False):
         try:
             if len(combo_selector.alone_selectors) == 1:
                 alone_selector = combo_selector.alone_selectors[0]
+                if alone_selector.name in ['¿', '~', '+', '>', '~', ',']:
+                    return None
                 if alone_selector.name != '*':
                     if alone_selector.pseudo is False:
                         if alone_selector.name[0] != '.' and alone_selector.name[0] != '#':
                             if alone_selector.name.find('[') == -1:
-                                Finder.find_trivial_selector(combo_selector, alone_selector.name,
-                                                             html_file_as_string)
+                                if multiple is True:
+                                    return Finder.find_trivial_selector(combo_selector, alone_selector.name,
+                                                                        html_file_as_string, False, True)
+                                else:
+                                    Finder.find_trivial_selector(combo_selector, alone_selector.name,
+                                                                 html_file_as_string)
                             else:
                                 new_selector = alone_selector.name.replace(']', '').split('[')
                                 if new_selector[1].find('=') > 0:
-                                    Finder.find_selector_with_equal(combo_selector, new_selector,
-                                                                    html_file_as_string)
-
+                                    if multiple is True:
+                                        return Finder.find_selector_with_equal(combo_selector, new_selector,
+                                                                               html_file_as_string, True)
+                                    else:
+                                        Finder.find_selector_with_equal(combo_selector, new_selector,
+                                                                        html_file_as_string)
                                 else:
-                                    Finder.find_selector_without_equal(combo_selector,
-                                                                       alone_selector.name,
-                                                                       html_file_as_string)
+                                    if multiple is True:
+                                        return Finder.find_selector_without_equal(combo_selector, alone_selector.name,
+                                                                                  html_file_as_string, True)
+                                    else:
+                                        Finder.find_selector_without_equal(combo_selector,
+                                                                           alone_selector.name,
+                                                                           html_file_as_string)
                         else:
                             if alone_selector.name[0] == '.':
                                 usage = Finder.find_class_selector(alone_selector.name[1:],
                                                                    html_file_as_string)
-                                combo_selector.usage = usage
+                                if multiple is True:
+                                    return usage
+                                else:
+                                    combo_selector.usage = usage
                             elif alone_selector.name[0] == '#':
                                 usage = Finder.find_id_selector(alone_selector.name[1:],
                                                                 html_file_as_string)
-                                combo_selector.usage = usage
+                                if multiple is True:
+                                    return usage
+                                else:
+                                    combo_selector.usage = usage
                     else:
                         Finder.find_pseudo_selector(combo_selector, alone_selector,
                                                     html_file_as_string)
                 else:
                     combo_selector.usage = True
             else:
-                # multiple classes
-                pass
+                Finder.find_multiple_selectors(combo_selector, html_file_as_string)
 
         except Exception:
             raise CSSRectifierFinderError('Something went wrong with find.')
-        return True
+
+    @staticmethod
+    def find_multiple_selectors(combo_selector, html_file_as_string):
+        results = list()
+        for alone_selector in combo_selector.alone_selectors:
+            fake_combo_selector = CSSSelector(combo_selector.name, 'fake_file')
+            fake_combo_selector.alone_selectors.append(alone_selector)
+            results.append(Finder.find_selectors_in_html(html_file_as_string, fake_combo_selector, multiple=True))
+
+        if False in results:
+            pass
+        else:
+            print(combo_selector)
 
 
 class MyFile:
@@ -918,5 +1107,8 @@ if __name__ == '__main__':
     test_rectifier = CSSRectifier()
     test_rectifier.do_rectifier(project_dir)
 
+    print('_______________________________________________________________________________________________')
     for selector in test_rectifier.css_selectors:
         print(str(selector) + ' ' + str(selector.usage) + ' ' + (str(selector.alone_selectors)))
+
+    print("--- %s seconds ---" % (time.time() - start_time))
