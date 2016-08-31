@@ -194,6 +194,7 @@ class Finder:
                         return True
         if return_findall is True:
             return findall_list
+
         return False
 
     @staticmethod
@@ -777,6 +778,8 @@ class Finder:
                             if find_id is not False and find.find(find_id) > 0:
                                 if multiple is True:
                                     return True
+                                elif return_find is True:
+                                    return find
                                 else:
                                     combo_selector.usage = True
                 elif alone_selector.find('.') > 0:
@@ -787,6 +790,8 @@ class Finder:
                         if find_class is not False and find.find(find_class) > 0:
                             if multiple is True:
                                 return True
+                            elif return_find is True:
+                                return find
                             else:
                                 combo_selector.usage = True
         else:
@@ -904,7 +909,7 @@ class Finder:
                                     return Finder.find_class_selector(alone_selector.name[1:],
                                                                       html_file_as_string, return_findall=True)
                                 else:
-                                    if usage is True:
+                                    if usage:
                                         combo_selector.usage = True
 
                             elif alone_selector.name[0] == '#':
@@ -1054,7 +1059,9 @@ class Finder:
                             break
                         greater = True
                     del fake_combo_selector
-
+            if False in results_with_plus or False in results_with_gr:
+                if str(combo_selector) not in list_to_output:
+                    list_to_output.append(str(combo_selector))
         if False not in results and False not in results_with_plus and False not in results_with_gr:
             combo_selector.usage = True
 
@@ -1521,15 +1528,15 @@ class CSSRectifier:
         for html_file in self.create_html_files():
             with open(html_file.path) as html:
                 html = html.read().replace('\t', '').replace('\n', '')
-                html = html.replace(re.search(u'<head>(.+?)</head>', html).group(), '')
+                # html = html.replace(re.search(u'<head>(.+?)</head>', html).group(), '')
                 for combo_selector in self.css_selectors:
                     Finder.find_selectors_in_html(html, combo_selector)
 
 
 if __name__ == '__main__':
     sys.setrecursionlimit(10000)
+    # project_dir = '/home/incode7/Desktop/TheRealGleb'
     project_dir = '/home/incode7/Desktop/TheRealGleb'
-    # project_dir = '/home/incode7/Desktop/1111'
     list_to_output = list()
 
     test_rectifier = CSSRectifier()
@@ -1540,4 +1547,6 @@ if __name__ == '__main__':
         if selector.usage is False:
             print(str(selector) + ' ' + str(selector.usage) + ' '
                   + (str(selector.alone_selectors)) + str(selector.files))
+    # for item_ in list_to_output:
+    #     print(item_)
     print("--- %s seconds ---" % (time.time() - start_time))
