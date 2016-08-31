@@ -9,7 +9,6 @@ start_time = time.time()
 class CSSRectifierFinderError(Exception):
     pass
 
-list_to_output = list()
 
 class Check:
     @staticmethod
@@ -852,10 +851,10 @@ class Finder:
                             if alone_selector.name.find('[') == -1:
                                 if multiple is True:
                                     return Finder.find_trivial_selector(combo_selector, alone_selector.name,
-                                                                        html_file_as_string, False, True)
+                                                                        html_file_as_string, multiple=True)
                                 elif return_find is True:
                                     return Finder.find_trivial_selector(combo_selector, alone_selector.name,
-                                                                        html_file_as_string, True, False)
+                                                                        html_file_as_string, return_find=True)
                                 elif return_findall is True:
                                     return Finder.find_trivial_selector(combo_selector, alone_selector.name,
                                                                         html_file_as_string, return_findall=True)
@@ -867,10 +866,10 @@ class Finder:
                                 if new_selector[1].find('=') > 0:
                                     if multiple is True:
                                         return Finder.find_selector_with_equal(combo_selector, new_selector,
-                                                                               html_file_as_string, False, True)
+                                                                               html_file_as_string, multiple=True)
                                     elif return_find is True:
                                         return Finder.find_selector_with_equal(combo_selector, new_selector,
-                                                                               html_file_as_string, True, False)
+                                                                               html_file_as_string, return_find=True)
                                     elif return_findall is True:
                                         return Finder.find_selector_with_equal(combo_selector, new_selector,
                                                                                html_file_as_string, return_findall=True)
@@ -880,10 +879,10 @@ class Finder:
                                 else:
                                     if multiple is True:
                                         return Finder.find_selector_without_equal(combo_selector, alone_selector.name,
-                                                                                  html_file_as_string, False, True)
+                                                                                  html_file_as_string, multiple=True)
                                     elif return_find is True:
                                         return Finder.find_selector_without_equal(combo_selector, alone_selector.name,
-                                                                                  html_file_as_string, True, False)
+                                                                                  html_file_as_string, return_find=True)
                                     elif return_findall is True:
                                         return Finder.find_selector_without_equal(combo_selector, alone_selector.name,
                                                                                   html_file_as_string,
@@ -900,7 +899,7 @@ class Finder:
                                     return usage
                                 elif return_find is True:
                                     return Finder.find_class_selector(alone_selector.name[1:],
-                                                                      html_file_as_string, True)
+                                                                      html_file_as_string, return_find=True)
                                 elif return_findall is True:
                                     return Finder.find_class_selector(alone_selector.name[1:],
                                                                       html_file_as_string, return_findall=True)
@@ -915,7 +914,7 @@ class Finder:
                                     return usage
                                 elif return_find is True:
                                     return Finder.find_id_selector(alone_selector.name[1:],
-                                                                   html_file_as_string, True)
+                                                                   html_file_as_string, return_find=True)
                                 elif return_findall is True:
                                     return Finder.find_id_selector(alone_selector.name[1:],
                                                                    html_file_as_string, return_findall=True)
@@ -1011,6 +1010,7 @@ class Finder:
                             continue
                     elif group_selector.name == ',':
                         space = False
+                        greater = False
                     elif group_selector.name == '+' or group_selector.name == '~':
                         result = list(Finder.find_selectors_in_html(html_file_as_string,
                                                                     fake_combo_selector, return_findall=True))
@@ -1032,8 +1032,8 @@ class Finder:
 
                     elif group_selector.name == ">":
                         if space is True or greater is True:
-                            result = list(Finder.get_alone_selector_from_full_code(fake_combo_selector,
-                                                                                   str_to_search))
+                            result = [Finder.get_alone_selector_from_full_code(fake_combo_selector,
+                                                                               str_to_search)]
                         else:
                             result = list(Finder.find_selectors_in_html(html_file_as_string,
                                                                         fake_combo_selector, return_findall=True))
@@ -1043,19 +1043,18 @@ class Finder:
                             combo_selector.alone_selectors[combo_selector.alone_selectors.index(group_selector) + 1]
                         )
 
-                        for str_to_search in result:
-                            find = Finder.get_full_code_on_selector(str_to_search, html_file_as_string)
+                        for str_to_search_ in result:
+                            find = Finder.get_full_code_on_selector(str_to_search_, html_file_as_string)
                             if Finder.find_selectors_in_html(find, fake_combo_selector, multiple=True) is True:
                                 results_with_gr.append(True)
+                                str_to_search = find
                                 break
                         else:
                             results_with_gr.append(False)
                             break
                         greater = True
                     del fake_combo_selector
-                if False in results or False in results_with_plus or False in results_with_gr:
-                    if str(combo_selector) + '  ' + str(combo_selector.alone_selectors) not in list_to_output:
-                        list_to_output.append(str(combo_selector) + '  ' + str(combo_selector.alone_selectors))
+
         if False not in results and False not in results_with_plus and False not in results_with_gr:
             combo_selector.usage = True
 
@@ -1110,6 +1109,8 @@ class Finder:
                         re.match(u'</[^>]+>', str_to_search_begin).group(), ''
                     )
                     str_to_search_end = '</%s>' % str_to_search_begin[1:]
+                if str_to_search_end.count('>') > 1:
+                    str_to_search_end = str_to_search_end[:-1]
 
                 broken_loop = 0
                 for_return_list = list()
@@ -1150,6 +1151,7 @@ class Finder:
                     return Finder.get_full_code_on_selector(
                         new_str_to_search, html_file_as_string, twice_play=True), \
                         new_str_to_search
+
                 if return_list:
                     return for_return_list
                 return str_to_search
@@ -1274,7 +1276,7 @@ class CSSSelector:
                         if self.name[i+1] == '=':
                             continue
                     if Check.check_letter(self.name[i]) is True:
-                        if Check.check_word(word[:-1]) is True:
+                        if Check.check_word(word) is True:
                             if self.name[first_bad_letter:i].isspace() is False:
                                 self.add_selector(self.name[first_bad_letter:i])
                         self.add_selector(self.name[i])
@@ -1284,6 +1286,7 @@ class CSSSelector:
                         word += self.name[i]
 
                 self.add_selector(self.name[first_bad_letter:])
+
             self.normalize_alone_selectors()
             self.parsed = True
 
@@ -1525,9 +1528,9 @@ class CSSRectifier:
 
 if __name__ == '__main__':
     sys.setrecursionlimit(10000)
-
-    project_dir = '/home/incode7/Desktop/1111'
-    # project_dir = '/home/incode7/Desktop/TheRealGleb'
+    project_dir = '/home/incode7/Desktop/TheRealGleb'
+    # project_dir = '/home/incode7/Desktop/1111'
+    list_to_output = list()
 
     test_rectifier = CSSRectifier()
     test_rectifier.do_rectifier(project_dir)
@@ -1537,8 +1540,4 @@ if __name__ == '__main__':
         if selector.usage is False:
             print(str(selector) + ' ' + str(selector.usage) + ' '
                   + (str(selector.alone_selectors)) + str(selector.files))
-
-    # for item in list_to_output:
-    #     print(item)
-
     print("--- %s seconds ---" % (time.time() - start_time))
