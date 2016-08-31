@@ -9,6 +9,7 @@ start_time = time.time()
 class CSSRectifierFinderError(Exception):
     pass
 
+list_to_output = list()
 
 class Check:
     @staticmethod
@@ -954,7 +955,8 @@ class Finder:
             fake_combo_selector = CSSSelector(combo_selector.name, 'fake_file')
             fake_combo_selector.alone_selectors.append(alone_selector)
             try:
-                results.append(Finder.find_selectors_in_html(html_file_as_string, fake_combo_selector, multiple=True))
+                results.append(Finder.find_selectors_in_html(html_file_as_string,
+                                                             fake_combo_selector, multiple=True))
             except CSSRectifierFinderError:
                 results.append(False)
             except IndexError:
@@ -965,6 +967,7 @@ class Finder:
         if False not in results:
             str_to_search = str()
             space = False
+            greater = False
             for group_selector in combo_selector.alone_selectors:
                 if group_selector.name in ['¿', '+', '>', '~', ',']:
                     fake_combo_selector = CSSSelector(combo_selector.name, 'fake_file')
@@ -974,6 +977,7 @@ class Finder:
                             combo_selector.alone_selectors.index(group_selector)-1
                         ]
                         fake_combo_selector.alone_selectors.append(fake_alone_selector)
+
                     except CSSRectifierFinderError:
                         break
 
@@ -1027,23 +1031,32 @@ class Finder:
                             results_with_plus.append(False)
 
                     elif group_selector.name == ">":
-                        result = list(Finder.find_selectors_in_html(html_file_as_string,
-                                                                    fake_combo_selector, return_findall=True))
+                        if space is True or greater is True:
+                            result = list(Finder.get_alone_selector_from_full_code(fake_combo_selector,
+                                                                                   str_to_search))
+                        else:
+                            result = list(Finder.find_selectors_in_html(html_file_as_string,
+                                                                        fake_combo_selector, return_findall=True))
+
                         fake_combo_selector.alone_selectors.clear()
                         fake_combo_selector.alone_selectors.append(
                             combo_selector.alone_selectors[combo_selector.alone_selectors.index(group_selector) + 1]
                         )
+
                         for str_to_search in result:
                             find = Finder.get_full_code_on_selector(str_to_search, html_file_as_string)
                             if Finder.find_selectors_in_html(find, fake_combo_selector, multiple=True) is True:
                                 results_with_gr.append(True)
                                 break
-                            else:
-                                results_with_gr.append(False)
-
+                        else:
+                            results_with_gr.append(False)
+                            break
+                        greater = True
                     del fake_combo_selector
-
-        if False not in results and False not in results_with_plus:
+                if False in results or False in results_with_plus or False in results_with_gr:
+                    if str(combo_selector) + '  ' + str(combo_selector.alone_selectors) not in list_to_output:
+                        list_to_output.append(str(combo_selector) + '  ' + str(combo_selector.alone_selectors))
+        if False not in results and False not in results_with_plus and False not in results_with_gr:
             combo_selector.usage = True
 
     @staticmethod
@@ -1063,82 +1076,85 @@ class Finder:
     def get_full_code_on_selector(selector_to_search, html_file_as_string,
                                   return_neighbor=False, twice_play=False, return_list=False):
         try:
-            if selector_to_search.find('<') == 0 and selector_to_search.find('</') > 0 \
-                    and return_neighbor is False and twice_play is False:
-                return selector_to_search
+            if selector_to_search:
+                if selector_to_search.find('<') == 0 and selector_to_search.find('</') > 0 \
+                        and return_neighbor is False and twice_play is False:
+                    return selector_to_search
 
-            str_to_search = ''
-            if selector_to_search[0] != '<':
-                for i in range(len(html_file_as_string[html_file_as_string.find(selector_to_search):])):
-                    str_to_search += html_file_as_string[html_file_as_string.find(selector_to_search) - i - 1]
-                    if html_file_as_string[html_file_as_string.find(selector_to_search) - i - 1] == '<':
-                        break
-
-            str_to_search = str_to_search[::-1] + selector_to_search
-            for i in range(html_file_as_string.find(str_to_search) + len(str(str_to_search)),
-                           len(html_file_as_string)):
-
-                str_to_search += html_file_as_string[i]
-                if html_file_as_string[i] == '>':
-                    break
-            str_to_search_begin, str_to_search_end = '', ''
-
-            for i in str_to_search:
-                if i == ' ':
-                    break
-                else:
-                    str_to_search_end += i
-            str_to_search_begin = str_to_search_end
-            str_to_search_end = '</%s>' % str_to_search_end[1:]
-
-            if str_to_search_begin.find('</') == 0:
-                str_to_search_begin = str_to_search_begin.replace(
-                    re.match(u'</[^>]+>', str_to_search_begin).group(), ''
-                )
-                str_to_search_end = '</%s>' % str_to_search_begin[1:]
-
-            broken_loop = 0
-            for_return_list = list()
-            for find in re.findall(u'%s.*?%s' % (str_to_search, str_to_search_end), html_file_as_string):
-                if find.count(str_to_search_begin) == find.count(str_to_search_end):
-                    str_to_search = find
-                    break
-                else:
-                    if return_list:
-                        for_return_list.append(find)
-                        continue
-                    loop = True
-                    while loop is True:
-                        if broken_loop == 25:
+                str_to_search = ''
+                if selector_to_search[0] != '<':
+                    for i in range(len(html_file_as_string[html_file_as_string.find(selector_to_search):])):
+                        str_to_search += html_file_as_string[html_file_as_string.find(selector_to_search) - i - 1]
+                        if html_file_as_string[html_file_as_string.find(selector_to_search) - i - 1] == '<':
                             break
-                        for second_find in re.findall(u'%s.*?%s' % (str_to_search, str_to_search_end),
-                                                      html_file_as_string):
-                            if second_find.count(str_to_search_begin) \
-                                    == second_find.count(str_to_search_end):
-                                str_to_search = second_find
-                                loop = False
+
+                str_to_search = str_to_search[::-1] + selector_to_search
+                for i in range(html_file_as_string.find(str_to_search) + len(str(str_to_search)),
+                               len(html_file_as_string)):
+
+                    str_to_search += html_file_as_string[i]
+                    if html_file_as_string[i] == '>':
+                        break
+                str_to_search_begin, str_to_search_end = '', ''
+
+                for i in str_to_search:
+                    if i == ' ':
+                        break
+                    else:
+                        str_to_search_end += i
+                str_to_search_begin = str_to_search_end
+                str_to_search_end = '</%s>' % str_to_search_end[1:]
+
+                if str_to_search_begin.find('</') == 0:
+                    str_to_search_begin = str_to_search_begin.replace(
+                        re.match(u'</[^>]+>', str_to_search_begin).group(), ''
+                    )
+                    str_to_search_end = '</%s>' % str_to_search_begin[1:]
+
+                broken_loop = 0
+                for_return_list = list()
+                for find in re.findall(u'%s.*?%s' % (str_to_search, str_to_search_end), html_file_as_string):
+                    if find.count(str_to_search_begin) == find.count(str_to_search_end):
+                        str_to_search = find
+                        break
+                    else:
+                        if return_list:
+                            for_return_list.append(find)
+                            continue
+                        loop = True
+                        while loop is True:
+                            if broken_loop == 25:
                                 break
-                            str_to_search = second_find
+                            for second_find in re.findall(u'%s.*?%s' % (str_to_search, str_to_search_end),
+                                                          html_file_as_string):
+                                if second_find.count(str_to_search_begin) \
+                                        == second_find.count(str_to_search_end):
+                                    str_to_search = second_find
+                                    loop = False
+                                    break
+                                str_to_search = second_find
+                            if loop is False:
+                                break
+                            broken_loop += 1
                         if loop is False:
                             break
-                        broken_loop += 1
-                    if loop is False:
-                        break
-            if broken_loop == 25:
-                str_to_search = Finder.get_full_code_on_selector_helper(str_to_search, html_file_as_string,
-                                                                        str_to_search_begin, str_to_search_end)
+                if broken_loop == 25:
+                    str_to_search = Finder.get_full_code_on_selector_helper(str_to_search, html_file_as_string,
+                                                                            str_to_search_begin, str_to_search_end)
 
-            if return_neighbor is True:
-                new_str_to_search = str_to_search + html_file_as_string[
-                                                    html_file_as_string.find(str_to_search)+len(str_to_search):
-                                                    html_file_as_string.find(str_to_search)+len(str_to_search)+5]
+                if return_neighbor is True:
+                    new_str_to_search = str_to_search + html_file_as_string[
+                                                        html_file_as_string.find(str_to_search)+len(str_to_search):
+                                                        html_file_as_string.find(str_to_search)+len(str_to_search)+5]
 
-                return Finder.get_full_code_on_selector(
-                    new_str_to_search, html_file_as_string, twice_play=True), \
-                    new_str_to_search
-            if return_list:
-                return for_return_list
-            return str_to_search
+                    return Finder.get_full_code_on_selector(
+                        new_str_to_search, html_file_as_string, twice_play=True), \
+                        new_str_to_search
+                if return_list:
+                    return for_return_list
+                return str_to_search
+            else:
+                return ''
 
         except AttributeError:
             pass
@@ -1235,9 +1251,10 @@ class CSSSelector:
 
     def normalize_alone_selectors(self):
         tmp = list()
+
         for index_alone_selector in range(len(self.alone_selectors)):
             if self.alone_selectors[index_alone_selector].name == '':
-                if self.alone_selectors[index_alone_selector-1].name not in ['+', '~', ',']:
+                if self.alone_selectors[index_alone_selector-1].name not in ['+', '~', ',', '>']:
                     tmp.append(AloneCSSSelector('¿'))
             else:
                 tmp.append(self.alone_selectors[index_alone_selector])
@@ -1271,7 +1288,7 @@ class CSSSelector:
             self.parsed = True
 
     def is_alone(self):
-        if self.name.find(' ') < 0 and self.name.find(',') < 0 and self.name.find('<') < 0\
+        if self.name.find(' ') < 0 and self.name.find(',') < 0 and self.name.find('>') < 0\
                 and self.name.find('~') < 0 and self.name.find('+') < 0:
             return True
         if self.name.find('~=') > 0 or self.name.find('^=') > 0 or self.name.find('$=') > 0\
@@ -1509,16 +1526,19 @@ class CSSRectifier:
 if __name__ == '__main__':
     sys.setrecursionlimit(10000)
 
-    # project_dir = '/home/incode7/Desktop/1111'
-    project_dir = '/home/incode7/Desktop/TheRealGleb'
+    project_dir = '/home/incode7/Desktop/1111'
+    # project_dir = '/home/incode7/Desktop/TheRealGleb'
 
     test_rectifier = CSSRectifier()
     test_rectifier.do_rectifier(project_dir)
 
     print('_______________________________________________________________________________________________')
     for selector in test_rectifier.css_selectors:
-        if selector is False:
+        if selector.usage is False:
             print(str(selector) + ' ' + str(selector.usage) + ' '
                   + (str(selector.alone_selectors)) + str(selector.files))
+
+    # for item in list_to_output:
+    #     print(item)
 
     print("--- %s seconds ---" % (time.time() - start_time))
