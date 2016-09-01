@@ -3,6 +3,8 @@ import sys
 import os
 import re
 import time
+import jinja2
+
 start_time = time.time()
 
 
@@ -181,7 +183,8 @@ class Finder:
             return return_findall_list
 
     @staticmethod
-    def find_class_selector(alone_selector, html_file_as_string, return_find=False, return_findall=False):
+    def find_class_selector(alone_selector, html_file_as_string,
+                            return_find=False, return_findall=False):
         findall_list = list()
         for find in re.findall(u'class="[^"]+"', html_file_as_string):
             for one_class in find.replace('class=', '')[1:-1].split(' '):
@@ -959,8 +962,14 @@ class Finder:
             fake_combo_selector = CSSSelector(combo_selector.name, 'fake_file')
             fake_combo_selector.alone_selectors.append(alone_selector)
             try:
-                results.append(Finder.find_selectors_in_html(html_file_as_string,
-                                                             fake_combo_selector, multiple=True))
+                tmp_result = Finder.find_selectors_in_html(html_file_as_string,
+                                                           fake_combo_selector, multiple=True)
+                results.append(tmp_result)
+                if tmp_result is True:
+                    if alone_selector.name[0] == '.' or alone_selector.name[0] == '#':
+                        alone_selector.alone_usage = True
+                        alone_selector.alone_usage_for_file = True
+                        combo_selector.kind_usage = True
             except CSSRectifierFinderError:
                 results.append(False)
             except IndexError:
@@ -1212,7 +1221,36 @@ class HTMLFile(MyFile):
     def __init__(self, path):
         with open(path, 'r+') as f:
             self.html = f.read().replace('\t', '')
+        self.opened_and_closed_tags_check = False
         super().__init__(path)
+
+    def check_tags(self, html_file_as_string):
+        optional_tags = ['html', 'head', 'body', 'li', 'dt',
+                         'dd', 'p', 'colgroup', 'thead', 'tbody',
+                         'tfoot', 'tr', 'th', 'td', 'rt', 'rp',
+                         'optgroup', 'option', 'area', 'base', 'br',
+                         'col', 'command', 'embed', 'hr', 'img', 'input',
+                         'keygen', 'link', 'meta', 'param', 'source',
+                         'track', 'wbr', 'ins', 'del']
+        optional_tags = frozenset(optional_tags)
+        opened_tags_count, closed_tags_count = 0, 0
+
+        for find in re.findall(u"<[^/][^>]+>", html_file_as_string):
+            if find.find('<!') == 0:
+                continue
+            else:
+                if find.split(' ')[0][1:].replace('>', '') not in optional_tags:
+                    opened_tags_count += 1
+
+        for find in re.findall(u'</[^>]+>', html_file_as_string):
+            if find.find('<!') == 0:
+                continue
+            else:
+                if find.split(' ')[0][2:].replace('>', '') not in optional_tags:
+                    closed_tags_count += 1
+
+        if opened_tags_count == closed_tags_count:
+            self.opened_and_closed_tags_check = True
 
     def __str__(self):
         return 'HTMLFile ' + self.name
@@ -1245,6 +1283,7 @@ class CSSSelector:
         self.alone_selectors = list()
         self.parsed = False
         self.usage = False
+        self.kind_usage = False
 
         self.add_file(file)
 
@@ -1252,7 +1291,8 @@ class CSSSelector:
         self.usage = True
 
     def add_file(self, file):
-        self.files.append(file)
+        if file not in self.files:
+            self.files.append(file)
 
     def add_selector(self, selector_to_add):
         if selector_to_add != '':
@@ -1330,6 +1370,9 @@ class AloneCSSSelector:
     def __init__(self, name):
         self.name = name.lstrip()
         self.pseudo = self.has_pseudo()
+        self.alone_usage = False
+        self.alone_usage_for_file = False
+        self.usage_files = list()
 
     def has_pseudo(self):
         if self.name.find(':') >= 0:
@@ -1337,13 +1380,22 @@ class AloneCSSSelector:
         return False
 
     def __str__(self):
-        return "AloneCSSSelector: '" + self.name + "'"
+        if self.alone_usage:
+            return "AloneCSSSelector: '" + self.name + "' " + str(self.usage_files)
+        else:
+            return "AloneCSSSelector: '" + self.name + "'"
 
     def __unicode__(self):
-        return "AloneCSSSelector: '" + self.name + "'"
+        if self.alone_usage:
+            return "AloneCSSSelector: '" + self.name + "' " + str(self.usage_files)
+        else:
+            return "AloneCSSSelector: '" + self.name + "'"
 
     def __repr__(self):
-        return "AloneCSSSelector: '" + self.name + "'"
+        if self.alone_usage:
+            return "AloneCSSSelector: '" + self.name + "' " + str(self.usage_files)
+        else:
+            return "AloneCSSSelector: '" + self.name + "'"
 
 
 class CSSRectifier:
@@ -1352,6 +1404,7 @@ class CSSRectifier:
         self.files = list()
         self.css_files, self.html_files = list(), list()
         self.css_selectors = list()
+        self.percent_of_usage = str()
 
     def get_css_files(self):
         files = list()
@@ -1383,23 +1436,35 @@ class CSSRectifier:
         else:
             self.css_selectors.append(CSSSelector(_selector, css_file))
 
-    def load_ignore_files(self):
+    def load_custom_ignore_files(self, dir_to_project):
         try:
+            with open(dir_to_project+'/rectifiler_ignore.txt', 'r+') as f:
+                for line in f:
+                    if line[0] != '#':
+                        self.ignore.append(line.rstrip())
+        except FileNotFoundError:
+            pass
+
+    def load_ignore_files(self, dir_to_project):
+        try:
+            self.load_custom_ignore_files(dir_to_project)
             with open('files to ignore.txt', 'r+') as f:
                 for line in f:
-                    self.ignore.append(line.rstrip())
+                    if line.rstrip() not in self.ignore:
+                        self.ignore.append(line.rstrip())
         except FileNotFoundError:
             with open('files to ignore.txt', 'w') as f:
                 for line in ['bootstrap.css', 'bootstrap.min.css', 'bootstrap-responsive.css',
-                             'bootstrap-responsive.min.css', 'font-awesome.css']:
+                             'bootstrap-responsive.min.css', 'font-awesome.css',
+                             'node_modules', 'venv', 'tmp']:
                     f.write(line+'\n')
-            self.load_ignore_files()
+            self.load_ignore_files(dir_to_project)
 
     def do_rectifier(self, home_directory, start=True, iteration=2, home='', old_dir=-1):
         if start:
             print('Start rectifiler....')
             home = home_directory.replace("/" + home_directory.split('/')[-1], "")
-            self.load_ignore_files()
+            self.load_ignore_files(dir_to_project=home_directory)
             Finder.load_ignore_pseudo()
 
             return self.do_rectifier(
@@ -1423,8 +1488,7 @@ class CSSRectifier:
                     elif os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'html' or item[-3:] == 'htm'):
                         self.files.append(MyFile(path=(os.getcwd() + '/' + item)))
 
-                    if os.path.isdir(os.getcwd() + '/' + item) and item != 'venv' and item != '.git' and item != 'tmp'\
-                            and item != 'node_modules' and item != 'src':
+                    if os.path.isdir(os.getcwd() + '/' + item) and item not in self.ignore:
                         os.chdir(os.getcwd() + '/' + item)
                         iteration += 2
 
@@ -1528,25 +1592,160 @@ class CSSRectifier:
         for html_file in self.create_html_files():
             with open(html_file.path) as html:
                 html = html.read().replace('\t', '').replace('\n', '')
+                html_file.check_tags(html)
+
                 # html = html.replace(re.search(u'<head>(.+?)</head>', html).group(), '')
                 for combo_selector in self.css_selectors:
                     Finder.find_selectors_in_html(html, combo_selector)
+                    if combo_selector.usage is False and combo_selector.kind_usage is True:
+                        for alone_selector in combo_selector.alone_selectors:
+                            if alone_selector.alone_usage_for_file is True:
+                                alone_selector.usage_files.append(html_file)
+                                alone_selector.alone_usage_for_file = False
+
+        self.calculate_percent_of_usage()
+
+    def do_report(self):
+        pass
+
+    def calculate_percent_of_usage(self):
+        usage_selectors = list()
+        for selector_ in self.css_selectors:
+            if selector_.usage:
+                usage_selectors.append(selector_)
+
+        self.percent_of_usage = 'Percent of usage: %s' \
+                                % str(round(len(usage_selectors)/len(self.css_selectors) * 100, 2)) \
+                                + '%'
+
+
+class RectifilerReport:
+    def __init__(self, **kwargs):
+        name_report_file = 'Report file from CSS Rectifiler.html'
+        report_file = open(report_path + '/' + name_report_file, 'w+')
+
+        # report_file.close()
+        template = """
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <title>CSS Rectifiler report</title>
+                <style type="text/css">
+                   table, legend, p {
+                       margin: 0 auto;
+                   }
+                   table {
+                    border: 2px solid black;
+                   }
+                   td {
+                       text-align: center;
+                   }
+                </style>
+            </head>
+            <body  class="text-center">
+                <table>
+                    <legend>Report from CSS Rectifiler.<br>All not used selectors.</legend>
+                    <tr>
+                        <th>Num.</th>
+                        <th>Name of selector</th>
+                        <th>CSS File</th>
+                        <th>Line on CSS File</th>
+                        <th>Used kind of selector</th>
+                        <th>Html file where used <br> kind of selector</th>
+                    </tr>
+                    {% for selector in selectors %}
+                        <tr>
+                            <td colspan="6">
+                                <hr>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ selector.name }}</td>
+                            <td>
+                                {% for file in selector.files %}
+                                    {% if not loop.last %}
+                                        {{ file.name }},
+                                    {% else %}
+                                        {{ file.name }}.
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {%for line in selector.lines %}
+                                    {% if not loop.last %}
+                                        {{ line }},
+                                    {% else %}
+                                        {{ line }}.
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            {% for alone_selector in selector.alone_selectors %}
+                                {% if alone_selector.alone_usage %}
+                                    <td>
+                                        {{ alone_selector.name }}
+                                    </td>
+                                    <td>
+                                        {% for usage_file in alone_selector.usage_files %}
+                                            {{ usage_file.name }}
+                                        {% endfor %}
+                                    </td>
+                                {% else %}
+                                    <td> - </td>
+                                    <td> - </td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </table>
+                <p>Percent of usage: {{ percent }}</p>
+            </body>
+        </html>
+        """
+
+        self.template = jinja2.Template(template)
+        self.template.stream({
+            'percent': kwargs['percent'],
+            'selectors': kwargs['selectors']
+        }).dump(report_file)
 
 
 if __name__ == '__main__':
     sys.setrecursionlimit(10000)
-    # project_dir = '/home/incode7/Desktop/TheRealGleb'
-    project_dir = '/home/incode7/Desktop/TheRealGleb'
+    report_path, project_dir = os.getcwd(), os.getcwd()
+    report = False
+
+    args = sys.argv[1:]
+    if '--path' in args:
+        try:
+            project_dir = args[args.index('--path')+1]
+            if os.path.isdir(project_dir):
+                if project_dir[-1] == '/':
+                    project_dir = project_dir[:-1]
+        except IndexError:
+            pass
+
+    if '--report' in args:
+        report = True
+        try:
+            if os.path.isdir(args[args.index('--report') + 1]):
+                report_path = args[args.index('--report') + 1]
+            else:
+                report_path = os.getcwd()
+        except IndexError:
+            pass
+
+    if project_dir == '/home/incode7/PycharmProjects/incodeParsing':
+        project_dir = '/home/incode7/Desktop/testdir'
     list_to_output = list()
 
-    test_rectifier = CSSRectifier()
-    test_rectifier.do_rectifier(project_dir)
+    rectifier = CSSRectifier()
+    rectifier.do_rectifier(project_dir)
 
-    print('_______________________________________________________________________________________________')
-    for selector in test_rectifier.css_selectors:
-        if selector.usage is False:
-            print(str(selector) + ' ' + str(selector.usage) + ' '
-                  + (str(selector.alone_selectors)) + str(selector.files))
-    # for item_ in list_to_output:
-    #     print(item_)
+    if report:
+        rectifier.do_report()
+    report = RectifilerReport(
+        percent=rectifier.percent_of_usage,
+        selectors=rectifier.css_selectors
+    )
     print("--- %s seconds ---" % (time.time() - start_time))
