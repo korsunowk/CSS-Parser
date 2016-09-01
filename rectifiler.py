@@ -4,6 +4,7 @@ import os
 import re
 import time
 import jinja2
+import subprocess
 
 start_time = time.time()
 
@@ -1606,7 +1607,10 @@ class CSSRectifier:
         self.calculate_percent_of_usage()
 
     def do_report(self):
-        pass
+        RectifilerReport(
+            percent=self.percent_of_usage,
+            selectors=self.css_selectors
+        )
 
     def calculate_percent_of_usage(self):
         usage_selectors = list()
@@ -1621,10 +1625,8 @@ class CSSRectifier:
 
 class RectifilerReport:
     def __init__(self, **kwargs):
-        name_report_file = 'Report file from CSS Rectifiler.html'
-        report_file = open(report_path + '/' + name_report_file, 'w+')
-
-        # report_file.close()
+        name_report_file = report_path + '/' + 'Report file from CSS Rectifiler.html'
+        report_file = open(name_report_file, 'w+')
         template = """
         <!DOCTYPE html>
         <html>
@@ -1708,7 +1710,17 @@ class RectifilerReport:
             'percent': kwargs['percent'],
             'selectors': kwargs['selectors']
         }).dump(report_file)
+        report_file.close()
+        self.open_file(name_report_file)
 
+    @staticmethod
+    def open_file(filename):
+        if sys.platform == "win32":
+            # os.startfile(filename)
+            pass
+        else:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.call([opener, filename])
 
 if __name__ == '__main__':
     sys.setrecursionlimit(10000)
@@ -1744,8 +1756,4 @@ if __name__ == '__main__':
 
     if report:
         rectifier.do_report()
-    report = RectifilerReport(
-        percent=rectifier.percent_of_usage,
-        selectors=rectifier.css_selectors
-    )
     print("--- %s seconds ---" % (time.time() - start_time))
