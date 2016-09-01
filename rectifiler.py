@@ -1607,9 +1607,13 @@ class CSSRectifier:
         self.calculate_percent_of_usage()
 
     def do_report(self):
+        not_used_selectors = list()
+        for not_used_selector in self.css_selectors:
+            if not_used_selector.usage is False:
+                not_used_selectors.append(not_used_selector)
         RectifilerReport(
             percent=self.percent_of_usage,
-            selectors=self.css_selectors
+            selectors=not_used_selectors
         )
 
     def calculate_percent_of_usage(self):
@@ -1682,21 +1686,23 @@ class RectifilerReport:
                                     {% endif %}
                                 {% endfor %}
                             </td>
-                            {% for alone_selector in selector.alone_selectors %}
-                                {% if alone_selector.alone_usage %}
-                                    <td>
-                                        {{ alone_selector.name }}
-                                    </td>
-                                    <td>
-                                        {% for usage_file in alone_selector.usage_files %}
-                                            {{ usage_file.name }}
-                                        {% endfor %}
-                                    </td>
-                                {% else %}
-                                    <td> - </td>
-                                    <td> - </td>
-                                {% endif %}
-                            {% endfor %}
+                            {% if selector.kind_usage %}
+                                {% for alone_selector in selector.alone_selectors %}
+                                    {% if alone_selector.alone_usage %}
+                                        <td>
+                                            {{ alone_selector.name }}
+                                        </td>
+                                        <td>
+                                            {% for usage_file in alone_selector.usage_files %}
+                                                {{ usage_file.name }}<br>
+                                            {% endfor %}
+                                        </td>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <td> - </td>
+                                <td> - </td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                 </table>
