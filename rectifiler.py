@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# !/home/incode7/PycharmProjects/incodeParsing/venv/bin/python
+# !usr/bin/python
 
 import sys
 import os
@@ -1071,9 +1071,7 @@ class Finder:
                             break
                         greater = True
                     del fake_combo_selector
-            if False in results_with_plus or False in results_with_gr:
-                if str(combo_selector) not in list_to_output:
-                    list_to_output.append(str(combo_selector))
+
         if False not in results and False not in results_with_plus and False not in results_with_gr:
             combo_selector.usage = True
 
@@ -1680,10 +1678,6 @@ if __name__ == '__main__':
             report_path = os.path.realpath(args[args.index('--report') + 1])
         except IndexError:
             pass
-
-    if project_dir == '/home/incode7/PycharmProjects/incodeParsing':
-        project_dir = '/home/incode7/Desktop/testdir'
-    list_to_output = list()
 
     rectifier = CSSRectifier()
     rectifier.do_rectifier(project_dir)
