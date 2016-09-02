@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Rectifiler report</title>
+		<style type="text/css">
+		   table, legend, p {
+			   margin: 0 auto;
+		   }
+		   table {
+			border: 2px solid black;
+		   }
+		   td {
+			   text-align: center;
+		   }
+		</style>
+	</head>
+	<body  class="text-center">
+		<table>
+			<legend>Report from CSS Rectifiler.<br>All not used selectors.</legend>
+			<tr>
+				<th>Num.</th>
+				<th>Name of selector</th>
+				<th>CSS File</th>
+				<th>Line on CSS File</th>
+				<th>Used kind of selector</th>
+				<th>Html file where used <br> kind of selector</th>
+			</tr>
+			{% for selector in selectors %}
+				<tr>
+					<td colspan="6">
+						<hr>
+					</td>
+				</tr>
+				<tr>
+					<td>{{ loop.index }}</td>
+					<td>{{ selector.name }}</td>
+					<td>
+						{% for file in selector.files %}
+							{% if not loop.last %}
+								{{ file.name }},
+							{% else %}
+								{{ file.name }}.
+							{% endif %}
+						{% endfor %}
+					</td>
+					<td>
+						{%for line in selector.lines %}
+							{% if not loop.last %}
+								{{ line }},
+							{% else %}
+								{{ line }}.
+							{% endif %}
+						{% endfor %}
+					</td>
+					{% if selector.kind_usage %}
+						{% for alone_selector in selector.alone_selectors %}
+							{% if alone_selector.alone_usage %}
+								<td>
+									{{ alone_selector.name }}
+								</td>
+								<td>
+									{% for usage_file in alone_selector.usage_files %}
+										{{ usage_file.name }}<br>
+									{% endfor %}
+								</td>
+							{% endif %}
+						{% endfor %}
+					{% else %}
+						<td> - </td>
+						<td> - </td>
+					{% endif %}
+				</tr>
+			{% endfor %}
+		</table>
+		<p>Percent of usage: {{ percent }}</p>
+	</body>
+</html>
