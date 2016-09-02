@@ -1631,94 +1631,24 @@ class CSSRectifier:
 
 class RectifilerReport:
     def __init__(self, **kwargs):
+        self.env = jinja2.Environment(loader=jinja2.FileSystemLoader(BASEDIR))
+        try:
+            self.template = self.env.get_template('report_template.html').render(
+                {
+                    'percent': kwargs['percent'],
+                    'selectors': kwargs['selectors']
+                }
+            )
+            self.create_report()
+        except jinja2.TemplateNotFound:
+            print('Template not found. Programm close.')
+            exit()
+
+    def create_report(self):
         name_report_file = report_path + '/' + 'Report file from CSS Rectifiler.html'
         report_file = open(name_report_file, 'w+')
-        template = """
-        <!DOCTYPE html>
-        <html>
-            <head>
-                <title>CSS Rectifiler report</title>
-                <style type="text/css">
-                   table, legend, p {
-                       margin: 0 auto;
-                   }
-                   table {
-                    border: 2px solid black;
-                   }
-                   td {
-                       text-align: center;
-                   }
-                </style>
-            </head>
-            <body  class="text-center">
-                <table>
-                    <legend>Report from CSS Rectifiler.<br>All not used selectors.</legend>
-                    <tr>
-                        <th>Num.</th>
-                        <th>Name of selector</th>
-                        <th>CSS File</th>
-                        <th>Line on CSS File</th>
-                        <th>Used kind of selector</th>
-                        <th>Html file where used <br> kind of selector</th>
-                    </tr>
-                    {% for selector in selectors %}
-                        <tr>
-                            <td colspan="6">
-                                <hr>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>{{ loop.index }}</td>
-                            <td>{{ selector.name }}</td>
-                            <td>
-                                {% for file in selector.files %}
-                                    {% if not loop.last %}
-                                        {{ file.name }},
-                                    {% else %}
-                                        {{ file.name }}.
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
-                            <td>
-                                {%for line in selector.lines %}
-                                    {% if not loop.last %}
-                                        {{ line }},
-                                    {% else %}
-                                        {{ line }}.
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
-                            {% if selector.kind_usage %}
-                                {% for alone_selector in selector.alone_selectors %}
-                                    {% if alone_selector.alone_usage %}
-                                        <td>
-                                            {{ alone_selector.name }}
-                                        </td>
-                                        <td>
-                                            {% for usage_file in alone_selector.usage_files %}
-                                                {{ usage_file.name }}<br>
-                                            {% endfor %}
-                                        </td>
-                                    {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                <td> - </td>
-                                <td> - </td>
-                            {% endif %}
-                        </tr>
-                    {% endfor %}
-                </table>
-                <p>Percent of usage: {{ percent }}</p>
-            </body>
-        </html>
-        """
+        report_file.write(self.template)
 
-        self.template = jinja2.Template(template)
-        self.template.stream({
-            'percent': kwargs['percent'],
-            'selectors': kwargs['selectors']
-        }).dump(report_file)
-        report_file.close()
         self.open_file(name_report_file)
 
     @staticmethod
@@ -1760,4 +1690,8 @@ if __name__ == '__main__':
 
     if report:
         rectifier.do_report()
+    else:
+        for css_selector in rectifier.css_selectors:
+            if not css_selector.usage:
+                print(css_selector)
     print("--- %s seconds ---" % (time.time() - start_time))
