@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# !/home/incode7/PycharmProjects/incodeParsing/venv/bin/python
+
 import sys
 import os
 import re
@@ -1730,26 +1732,22 @@ class RectifilerReport:
 
 if __name__ == '__main__':
     sys.setrecursionlimit(10000)
-    report_path, project_dir = os.getcwd(), os.getcwd()
+    BASEDIR = os.path.dirname(
+        os.path.realpath(sys.argv[0])
+    )
+    report_path, project_dir = BASEDIR, os.getcwd()
     report = False
 
     args = sys.argv[1:]
     if '--path' in args:
         try:
-            project_dir = args[args.index('--path')+1]
-            if os.path.isdir(project_dir):
-                if project_dir[-1] == '/':
-                    project_dir = project_dir[:-1]
+            project_dir = os.path.realpath(args[args.index('--path')+1])
         except IndexError:
             pass
-
     if '--report' in args:
         report = True
         try:
-            if os.path.isdir(args[args.index('--report') + 1]):
-                report_path = args[args.index('--report') + 1]
-            else:
-                report_path = os.getcwd()
+            report_path = os.path.realpath(args[args.index('--report') + 1])
         except IndexError:
             pass
 
