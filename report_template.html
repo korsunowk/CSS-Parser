@@ -6,6 +6,9 @@
 		   table, legend, p {
 			   margin: 0 auto;
 		   }
+		   legend {
+			   font-size: 20px;
+		   }
 		   table {
 			border: 2px solid black;
 		   }
@@ -16,7 +19,7 @@
 	</head>
 	<body  class="text-center">
 		<table>
-			<legend>Report from CSS Rectifiler.<br>All not used selectors.</legend>
+			<legend>Report from CSS Rectifiler. All not used selectors.</legend>
 			<tr>
 				<th>Num.</th>
 				<th>Name of selector</th>
@@ -72,6 +75,36 @@
 				</tr>
 			{% endfor %}
 		</table>
+		<br>
+		{% if html %}
+			<table>
+				<legend>Cheking for open/closed tags in html's.</legend>
+				<tr>
+					<th>
+						Name
+					</th>
+					<th>
+						Check open/closed tags.
+					</th>
+				</tr>
+				{% for file in html_files %}
+					<tr>
+						<td>
+							{{ file.name }}
+						</td>
+						<td>
+							{% if file.opened_and_closed_tags_check %}
+								OK
+							{% else %}
+								Not ok
+							{% endif %}
+						</td>
+					</tr>
+				{% endfor %}
+			</table>
+			<br>
+		{% endif %}
+		<hr>
 		<p>Percent of usage: {{ percent }}</p>
 	</body>
 </html>
