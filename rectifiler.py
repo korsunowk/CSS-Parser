@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 # !/home/incode7/PycharmProjects/incodeParsing/venv/bin/python
 
-from css_selectors import CSSSelector
-from files import MyFile, CSSFile, HTMLFile
-from static_classes import Finder
-from rectifiler_report import RectifilerReport
+# from .css_selectors import CSSSelector
+# from files import MyFile, CSSFile, HTMLFile
+# from static_classes import Finder
+# from rectifiler_report import RectifilerReport
+import css_selectors
+import files
+import static_classes
+import rectifiler_report
 import sys
 import os
 import re
@@ -22,18 +26,18 @@ class CSSRectifier:
         self.percent_of_usage = str()
 
     def get_css_files(self):
-        files = list()
+        files_ = list()
         for file in self.files:
             if file.extention == 'css':
-                files.append(file)
-        return files
+                files_.append(file)
+        return files_
 
     def get_html_files(self):
-        files = list()
+        files_ = list()
         for file in self.files:
             if file.extention == 'html' or file.extention == 'htm':
-                files.append(file)
-        return files
+                files_.append(file)
+        return files_
 
     def add_selector(self, _selector, css_file):
         if len(self.css_selectors) > 0:
@@ -41,7 +45,7 @@ class CSSRectifier:
             for i in self.css_selectors:
                 tmp.append(i.name)
             if _selector not in tmp:
-                new_selector = CSSSelector(_selector, css_file)
+                new_selector = css_selectors.CSSSelector(_selector, css_file)
                 new_selector.add_line(css_file)
                 self.css_selectors.append(new_selector)
             else:
@@ -49,7 +53,7 @@ class CSSRectifier:
                 self.css_selectors[i].add_file(css_file)
                 self.css_selectors[i].add_line(css_file)
         else:
-            self.css_selectors.append(CSSSelector(_selector, css_file))
+            self.css_selectors.append(css_selectors.CSSSelector(_selector, css_file))
 
     def load_custom_ignore_files(self, dir_to_project):
         try:
@@ -80,7 +84,7 @@ class CSSRectifier:
             print('Start rectifiler....')
             home = home_directory.replace("/" + home_directory.split('/')[-1], "")
             self.load_ignore_files(dir_to_project=home_directory)
-            Finder.load_ignore_pseudo()
+            static_classes.Finder.load_ignore_pseudo()
 
             return self.do_rectifier(
                 os.chdir(home_directory),
@@ -96,12 +100,12 @@ class CSSRectifier:
                     if os.path.isfile(os.getcwd() + '/' + item) and item[-3:] == 'css':
                         if item not in self.ignore:
                             # print(item)
-                            self.files.append(MyFile(path=(os.getcwd() + '/' + item)))
+                            self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
                         # else:
                         #     print('IGNORE: ' + item)
 
                     elif os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'html' or item[-3:] == 'htm'):
-                        self.files.append(MyFile(path=(os.getcwd() + '/' + item)))
+                        self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
 
                     if os.path.isdir(os.getcwd() + '/' + item) and item not in self.ignore:
                         os.chdir(os.getcwd() + '/' + item)
@@ -164,7 +168,7 @@ class CSSRectifier:
                 else:
                     final_css += css_file[i]
 
-            self.css_files.append(CSSFile(file.path, final_css))
+            self.css_files.append(files.CSSFile(file.path, final_css))
         self.css_separation()
 
     def css_separation(self):
@@ -199,7 +203,7 @@ class CSSRectifier:
         self.find_selectors_in_html()
 
     def create_html_files(self):
-        self.html_files = [HTMLFile(file.path) for file in self.get_html_files()]
+        self.html_files = [files.HTMLFile(file.path) for file in self.get_html_files()]
         return self.html_files
 
     def find_selectors_in_html(self):
@@ -211,7 +215,7 @@ class CSSRectifier:
 
                 # html = html.replace(re.search(u'<head>(.+?)</head>', html).group(), '')
                 for combo_selector in self.css_selectors:
-                    Finder.find_selectors_in_html(html, combo_selector)
+                    static_classes.Finder.find_selectors_in_html(html, combo_selector)
                     if combo_selector.usage is False and combo_selector.kind_usage is True:
                         for alone_selector in combo_selector.alone_selectors:
                             if alone_selector.alone_usage_for_file is True:
@@ -234,7 +238,7 @@ class CSSRectifier:
                 html_files.append(html_file)
                 html = True
 
-        RectifilerReport(
+        rectifiler_report.RectifilerReport(
             percent=self.percent_of_usage,
             selectors=not_used_selectors,
             html=html,
@@ -269,13 +273,7 @@ if __name__ == '__main__':
             pass
     if '--report' in args:
         report = True
-        try:
-            report_path = os.path.realpath(args[args.index('--report') + 1])
-        except IndexError:
-            pass
 
-    if project_dir == '/home/incode7/PycharmProjects/incodeParsing':
-        project_dir = '/home/incode7/Desktop/testdir'
     list_to_output = list()
 
     rectifier = CSSRectifier()

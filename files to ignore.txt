@@ -3,3 +3,8 @@ bootstrap.min.css
 bootstrap-responsive.css
 bootstrap-responsive.min.css
 font-awesome.css
+tmp
+venv
+src
+node_modules
+.git

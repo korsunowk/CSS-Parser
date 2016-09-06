@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from static_classes import Check
-
+# from static_classes import Check
+import static_classes
 
 class CSSSelector:
     def __init__(self, name, file):
@@ -63,8 +63,8 @@ class CSSSelector:
                     if self.name[i] == '~':
                         if self.name[i+1] == '=':
                             continue
-                    if Check.check_letter(self.name[i]) is True:
-                        if Check.check_word(word) is True:
+                    if static_classes.Check.check_letter(self.name[i]) is True:
+                        if static_classes.Check.check_word(word) is True:
                             if self.name[first_bad_letter:i].isspace() is False:
                                 self.add_selector(self.name[first_bad_letter:i])
                         self.add_selector(self.name[i])

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import re
-from css_selectors import AloneCSSSelector, CSSSelector
+# from css_selectors import AloneCSSSelector, CSSSelector
+import css_selectors
 
 
 class CSSRectifierFinderError(Exception):
@@ -636,7 +637,7 @@ class Finder:
             if analyzed_alone_selector[0] != '':
                 if ':' + analyzed_alone_selector[1] in Finder.ignore:
                     combo_selector.alone_selectors.pop()
-                    combo_selector.alone_selectors.append(AloneCSSSelector(analyzed_alone_selector[0]))
+                    combo_selector.alone_selectors.append(css_selectors.AloneCSSSelector(analyzed_alone_selector[0]))
 
                     if multiple is True:
                         return Finder.find_selectors_in_html(html_file_as_string, combo_selector, multiple=True)
@@ -955,7 +956,7 @@ class Finder:
         results_with_gr = list()
 
         for alone_selector in combo_selector.alone_selectors:
-            fake_combo_selector = CSSSelector(combo_selector.name, 'fake_file')
+            fake_combo_selector = css_selectors.CSSSelector(combo_selector.name, 'fake_file')
             fake_combo_selector.alone_selectors.append(alone_selector)
             try:
                 tmp_result = Finder.find_selectors_in_html(html_file_as_string,
@@ -979,7 +980,7 @@ class Finder:
             greater = False
             for group_selector in combo_selector.alone_selectors:
                 if group_selector.name in ['¿', '+', '>', '~', ',']:
-                    fake_combo_selector = CSSSelector(combo_selector.name, 'fake_file')
+                    fake_combo_selector = css_selectors.CSSSelector(combo_selector.name, 'fake_file')
 
                     try:
                         fake_alone_selector = combo_selector.alone_selectors[

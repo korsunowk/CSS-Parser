@@ -2,7 +2,15 @@ import sys
 import subprocess
 import jinja2
 import os
-from rectifiler import BASEDIR, report_path
+
+BASEDIR = os.path.dirname(
+    os.path.realpath(sys.argv[0])
+)
+try:
+    report_path = os.path.realpath(sys.argv[sys.argv.index('--report') + 1])
+except Exception:
+    report_path = os.getcwd()
+    pass
 
 
 class RectifilerReport:
