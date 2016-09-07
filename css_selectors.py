@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# from static_classes import Check
 import static_classes
+
 
 class CSSSelector:
     def __init__(self, name, file):
@@ -133,7 +133,7 @@ class AloneCSSSelector:
             return "AloneCSSSelector: '" + self.name + "'"
 
     def __repr__(self):
-        if self.alone_usage:
+        if self.alone_usage and len(self.usage_files) > 0:
             return "AloneCSSSelector: '" + self.name + "' " + str(self.usage_files)
         else:
             return "AloneCSSSelector: '" + self.name + "'"

@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
-# !/home/incode7/PycharmProjects/incodeParsing/venv/bin/python
 
-# from .css_selectors import CSSSelector
-# from files import MyFile, CSSFile, HTMLFile
-# from static_classes import Finder
-# from rectifiler_report import RectifilerReport
 import css_selectors
 import files
+import templanisator.jinja_template as jinja_
 import static_classes
 import rectifiler_report
 import sys
@@ -67,19 +63,22 @@ class CSSRectifier:
     def load_ignore_files(self, dir_to_project):
         try:
             self.load_custom_ignore_files(dir_to_project)
-            with open('files to ignore.txt', 'r+') as f:
+            with open(BASEDIR + '/files to ignore.txt', 'r+') as f:
                 for line in f:
                     if line.rstrip() not in self.ignore:
                         self.ignore.append(line.rstrip())
         except FileNotFoundError:
-            with open('files to ignore.txt', 'w') as f:
+            with open(BASEDIR + '/files to ignore.txt', 'w') as f:
                 for line in ['bootstrap.css', 'bootstrap.min.css', 'bootstrap-responsive.css',
                              'bootstrap-responsive.min.css', 'font-awesome.css',
-                             'node_modules', 'venv', 'tmp']:
-                    f.write(line+'\n')
+                             'node_modules', 'venv', 'tmp',
+                             'bootstrap.css.map', 'bootstrap.min.css.map',
+                             'bootstrap.theme.css', 'bootstrap.theme.css.map',
+                             'bootstrap.theme.min.css', 'bootstrap.theme.min.css.map']:
+                    f.write(str(line)+'\n')
             self.load_ignore_files(dir_to_project)
 
-    def do_rectifier(self, home_directory, start=True, iteration=2, home='', old_dir=-1):
+    def do_rectifier(self, home_directory, start=True, home='', old_dir=-1):
         if start:
             print('Start rectifiler....')
             home = home_directory.replace("/" + home_directory.split('/')[-1], "")
@@ -109,12 +108,10 @@ class CSSRectifier:
 
                     if os.path.isdir(os.getcwd() + '/' + item) and item not in self.ignore:
                         os.chdir(os.getcwd() + '/' + item)
-                        iteration += 2
 
                         return self.do_rectifier(
                             os.getcwd(),
                             start=False,
-                            iteration=iteration,
                             home=home,
                         )
                 os.chdir('../')
@@ -123,12 +120,10 @@ class CSSRectifier:
                     return self.css_minification()
                 else:
                     old_dir = os.listdir(os.getcwd()).index(home_directory.split('/')[-1])
-                    iteration -= 2
 
                 return self.do_rectifier(
                     os.getcwd(),
                     start=False,
-                    iteration=iteration,
                     home=home,
                     old_dir=old_dir,
                 )
@@ -156,7 +151,9 @@ class CSSRectifier:
                         or css_file[i].isspace() is True and css_file[i + 1] == '>' \
                         or css_file[i].isspace() is True and css_file[i - 1] == ',':
                     continue
-                elif css_file[i] == '@' and css_file[i:i + 6] == '@media':
+                elif css_file[i] == '@' and css_file[i:i + 6] == '@media'\
+                        or css_file[i] == '@' and css_file[i:i+9] == '@-webkit-'\
+                        or css_file[i] == '@' and css_file[i:i+6] == '@-moz-':
                     media = True
                 elif css_file[i] == '{' and media is False:
                     space = True
@@ -192,7 +189,10 @@ class CSSRectifier:
             clean_css_classes = []
             for i in minified_version:
                 if i not in clean_css_classes:
-                    clean_css_classes.append(i)
+                    if i[0] == ';':
+                        clean_css_classes.append(i[1:])
+                    else:
+                        clean_css_classes.append(i)
 
             for clean_selector in clean_css_classes:
                 self.add_selector(clean_selector, css_file)
@@ -204,23 +204,32 @@ class CSSRectifier:
 
     def create_html_files(self):
         self.html_files = [files.HTMLFile(file.path) for file in self.get_html_files()]
+        if template:
+            if template == 'jinja2':
+                self.html_files = jinja_.Jinja2TemplateProcessor().do_template_processor(self.html_files)
+            else:
+                print('Enter correct Template Processor.')
+                exit()
         return self.html_files
 
     def find_selectors_in_html(self):
         print('Start find selectors....')
         for html_file in self.create_html_files():
-            with open(html_file.path) as html:
-                html = html.read().replace('\t', '').replace('\n', '')
-                html_file.check_tags(html)
-
-                # html = html.replace(re.search(u'<head>(.+?)</head>', html).group(), '')
-                for combo_selector in self.css_selectors:
-                    static_classes.Finder.find_selectors_in_html(html, combo_selector)
+            html_file.check_tags(html_file.string_version)
+            # html = html.replace(re.search(u'<head>(.+?)</head>', html).group(), '')
+            for combo_selector in self.css_selectors:
+                try:
+                    static_classes.Finder.find_selectors_in_html(html_file.string_version, combo_selector)
                     if combo_selector.usage is False and combo_selector.kind_usage is True:
                         for alone_selector in combo_selector.alone_selectors:
                             if alone_selector.alone_usage_for_file is True:
                                 alone_selector.usage_files.append(html_file)
                                 alone_selector.alone_usage_for_file = False
+                    else:
+                        continue
+                except TypeError:
+                    print('bad')
+                    continue
 
         self.calculate_percent_of_usage()
 
@@ -250,10 +259,12 @@ class CSSRectifier:
         for selector_ in self.css_selectors:
             if selector_.usage:
                 usage_selectors.append(selector_)
-
-        self.percent_of_usage = 'Percent of usage: %s' \
-                                % str(round(len(usage_selectors)/len(self.css_selectors) * 100, 2)) \
-                                + '%'
+        try:
+            self.percent_of_usage = 'Percent of usage: %s' \
+                                    % str(round(len(usage_selectors)/len(self.css_selectors) * 100, 2)) \
+                                    + '%'
+        except ZeroDivisionError:
+            self.percent_of_usage = 'Percent of usage: 0%'
 
 
 if __name__ == '__main__':
@@ -262,8 +273,8 @@ if __name__ == '__main__':
     BASEDIR = os.path.dirname(
         os.path.realpath(sys.argv[0])
     )
-    report_path, project_dir = BASEDIR, os.getcwd()
-    report = False
+    project_dir = os.getcwd()
+    report, template = False, False
 
     args = sys.argv[1:]
     if '--path' in args:
@@ -273,7 +284,12 @@ if __name__ == '__main__':
             pass
     if '--report' in args:
         report = True
-
+    if '--template' in args:
+        try:
+            template = args[args.index('--template')+1]
+        except IndexError:
+            print('Input Template processor')
+            template = None
     list_to_output = list()
 
     rectifier = CSSRectifier()

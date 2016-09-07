@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import re
-# from css_selectors import AloneCSSSelector, CSSSelector
 import css_selectors
+import os
+import sys
+
+BASEDIR = os.path.dirname(
+        os.path.realpath(sys.argv[0])
+    )
 
 
 class CSSRectifierFinderError(Exception):
@@ -61,11 +66,11 @@ class Finder:
     @staticmethod
     def load_ignore_pseudo():
         try:
-            with open('pseudo classes to ignore.txt', 'r+') as f:
+            with open(BASEDIR + '/pseudo classes to ignore.txt', 'r+') as f:
                 for line in f:
                     Finder.ignore.append(line.rstrip())
         except FileNotFoundError:
-            with open('pseudo classes to ignore.txt', 'w') as f:
+            with open(BASEDIR + 'pseudo classes to ignore.txt', 'w') as f:
                 for line in [':visited', ':valid', ':root',
                              ':link', ':indeterminate', ':hover',
                              ':focus', ':default', ':checked',
@@ -285,16 +290,15 @@ class Finder:
                         else:
                             combo_selector.usage = True
             elif analyzed_alone_selector[1] in ['first-child', 'last-child']\
-                    or analyzed_alone_selector[1].find('nth-child') > 0\
-                    or analyzed_alone_selector[1].find('nth-last-child') > 0:
+                    or analyzed_alone_selector[1].find('nth-child') >= 0\
+                    or analyzed_alone_selector[1].find('nth-last-child') >= 0:
                 result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
                                                                    analyzed_alone_selector[0], html_file_as_string)
-
                 if result is not False:
                     str_to_find = '%s[^/]+/' % result
                     if str_to_find:
                         for find in re.findall(str_to_find, html_file_as_string):
-                            if find.count('>') > 1 or find.find('<img') > 0:
+                            if find.count('>') > 1 or find.find('<img') >= 0:
                                 if multiple is True:
                                     return True
                                 elif return_find is True:
@@ -302,8 +306,8 @@ class Finder:
                                 else:
                                     combo_selector.usage = True
             elif analyzed_alone_selector[1] in ['first-of-type', 'last-of-type']\
-                    or analyzed_alone_selector[1].find('nth-of-type') > 0\
-                    or analyzed_alone_selector[1].find('nth-last-of-type') > 0:
+                    or analyzed_alone_selector[1].find('nth-of-type') >= 0\
+                    or analyzed_alone_selector[1].find('nth-last-of-type') >= 0:
 
                 result = Finder.find_hard_not_ignore_pseudo_helper(combo_selector,
                                                                    analyzed_alone_selector[0], html_file_as_string)
@@ -631,7 +635,7 @@ class Finder:
 
     @staticmethod
     def find_pseudo_selector(combo_selector, alone_selector, html_file_as_string,
-                             multiple=False, return_find=False):
+                             multiple=False, return_find=False, return_findall=False):
         if Check.check_pseudo(alone_selector.name) is True:
             analyzed_alone_selector = alone_selector.name.split(':', 1)
             if analyzed_alone_selector[0] != '':
@@ -643,6 +647,8 @@ class Finder:
                         return Finder.find_selectors_in_html(html_file_as_string, combo_selector, multiple=True)
                     elif return_find is True:
                         return Finder.find_selectors_in_html(html_file_as_string, combo_selector, return_find=True)
+                    elif return_findall is True:
+                        return Finder.find_selectors_in_html(html_file_as_string, combo_selector, return_findall=True)
                     else:
                         Finder.find_selectors_in_html(html_file_as_string, combo_selector)
                 else:
@@ -667,7 +673,6 @@ class Finder:
                         else:
                             Finder.find_hard_not_ignore_pseudo(combo_selector, analyzed_alone_selector,
                                                                html_file_as_string)
-
             else:
                 # Если псевдокласс указывается без селектора, то он будет применяться ко всем элементам документа.
                 if multiple is True:
@@ -818,7 +823,7 @@ class Finder:
         return False
 
     @staticmethod
-    def find_selector_without_equal(combo_selector, alone_selector, html_file_as_string,
+    def find_selector_without_equal(combo_selector, alone_selector, html_file_as_string, 
                                     return_find=False, multiple=False, return_findall=False):
         return_findall_list = list()
         new_selector = alone_selector.replace(']', '').split('[')
@@ -935,13 +940,14 @@ class Finder:
                                                                html_file_as_string, return_find=True)
                         elif return_findall is True:
                             return Finder.find_pseudo_selector(combo_selector, alone_selector,
-                                                               html_file_as_string)
+                                                               html_file_as_string, return_findall=True)
                         else:
                             Finder.find_pseudo_selector(combo_selector, alone_selector,
                                                         html_file_as_string)
                 else:
                     combo_selector.usage = True
             else:
+
                 Finder.find_multiple_selectors(combo_selector, html_file_as_string)
 
         except CSSRectifierFinderError:
@@ -954,7 +960,6 @@ class Finder:
         results = list()
         results_with_plus = list()
         results_with_gr = list()
-
         for alone_selector in combo_selector.alone_selectors:
             fake_combo_selector = css_selectors.CSSSelector(combo_selector.name, 'fake_file')
             fake_combo_selector.alone_selectors.append(alone_selector)
@@ -987,7 +992,6 @@ class Finder:
                             combo_selector.alone_selectors.index(group_selector)-1
                         ]
                         fake_combo_selector.alone_selectors.append(fake_alone_selector)
-
                     except CSSRectifierFinderError:
                         break
 
@@ -1023,21 +1027,23 @@ class Finder:
                         space = False
                         greater = False
                     elif group_selector.name == '+' or group_selector.name == '~':
-                        result = list(Finder.find_selectors_in_html(html_file_as_string,
-                                                                    fake_combo_selector, return_findall=True))
+                        result = Finder.find_selectors_in_html(html_file_as_string,
+                                                               fake_combo_selector, return_findall=True)
 
                         fake_combo_selector.alone_selectors.clear()
                         fake_combo_selector.alone_selectors.append(
                             combo_selector.alone_selectors[combo_selector.alone_selectors.index(group_selector) + 1]
                         )
-
-                        for str_to_search in result:
-                            neighbor = Finder.get_full_code_on_selector(str_to_search, html_file_as_string,
-                                                                        return_neighbor=True)
-                            neighbor = neighbor[0].replace(neighbor[1], '')
-                            if Finder.find_selectors_in_html(neighbor, fake_combo_selector, multiple=True) is True:
-                                results_with_plus.append(True)
-                                break
+                        if result is not None:
+                            for str_to_search in result:
+                                neighbor = Finder.get_full_code_on_selector(str_to_search, html_file_as_string,
+                                                                            return_neighbor=True)
+                                neighbor = neighbor[0].replace(neighbor[1], '')
+                                if Finder.find_selectors_in_html(neighbor, fake_combo_selector, multiple=True) is True:
+                                    results_with_plus.append(True)
+                                    break
+                            else:
+                                results_with_plus.append(False)
                         else:
                             results_with_plus.append(False)
 
@@ -1046,20 +1052,24 @@ class Finder:
                             result = [Finder.get_alone_selector_from_full_code(fake_combo_selector,
                                                                                str_to_search)]
                         else:
-                            result = list(Finder.find_selectors_in_html(html_file_as_string,
-                                                                        fake_combo_selector, return_findall=True))
+                            result = Finder.find_selectors_in_html(html_file_as_string,
+                                                                   fake_combo_selector, return_findall=True)
+                            # if combo_selector.name.find('.portfolio-case:hover') >= 0:
+                            #     print(fake_combo_selector.alone_selectors)
 
                         fake_combo_selector.alone_selectors.clear()
                         fake_combo_selector.alone_selectors.append(
                             combo_selector.alone_selectors[combo_selector.alone_selectors.index(group_selector) + 1]
                         )
-
-                        for str_to_search_ in result:
-                            find = Finder.get_full_code_on_selector(str_to_search_, html_file_as_string)
-                            if Finder.find_selectors_in_html(find, fake_combo_selector, multiple=True) is True:
-                                results_with_gr.append(True)
-                                str_to_search = find
-                                break
+                        if result is not None:
+                            for str_to_search_ in result:
+                                find = Finder.get_full_code_on_selector(str_to_search_, html_file_as_string)
+                                if Finder.find_selectors_in_html(find, fake_combo_selector, multiple=True) is True:
+                                    results_with_gr.append(True)
+                                    str_to_search = find
+                                    break
+                            else:
+                                results_with_plus.append(False)
                         else:
                             results_with_gr.append(False)
                             break

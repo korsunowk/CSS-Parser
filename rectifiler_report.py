@@ -2,10 +2,12 @@ import sys
 import subprocess
 import jinja2
 import os
+import rectifiler
 
 BASEDIR = os.path.dirname(
-    os.path.realpath(sys.argv[0])
-)
+        os.path.realpath(sys.argv[0])
+    )
+
 try:
     report_path = os.path.realpath(sys.argv[sys.argv.index('--report') + 1])
 except Exception:

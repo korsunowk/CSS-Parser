@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import sys
 
 
 class MyFile:
@@ -36,9 +37,13 @@ class CSSFile(MyFile):
 
 class HTMLFile(MyFile):
     def __init__(self, path):
+        self.base = False
         with open(path, 'r+') as f:
             self.html = f.read().replace('\t', '')
         self.opened_and_closed_tags_check = False
+        self.includes = str()
+        with open(path) as html:
+            self.string_version = html.read().replace('\t', '').replace('\n', '')
         super().__init__(path)
 
     def check_tags(self, html_file_as_string):
