@@ -11,7 +11,7 @@ class AbstractTemplate(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def get_html_file_to_include(self, html_files, name_of_file):
+    def get_file_to_include(self, html_files, name_of_file):
         pass
 
     @abstractclassmethod

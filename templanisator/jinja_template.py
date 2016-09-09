@@ -35,7 +35,7 @@ class Jinja2TemplateProcessor(abc_temp.AbstractTemplate):
                     for find in re.findall(u'{%.*?%}', html_file.string_version):
                         if find.find('include') > 0 and find.find(include_html_file) > 0:
                             html_file.string_version = html_file.string_version.replace(
-                                find, self.get_html_file_to_include(
+                                find, self.get_file_to_include(
                                     html_files, include_html_file
                                 ).string_version)
         return_list = list()
@@ -43,9 +43,9 @@ class Jinja2TemplateProcessor(abc_temp.AbstractTemplate):
             if html_file.base is False:
                 if html_file.string_version.find('{% extends') >= 0:
                     base_file = self\
-                        .get_html_file_to_include(html_files, os.path.basename(re.search(u'".*?"',
-                                                  re.search(u'{%.*?%}', html_file.string_version)
-                                                  .group()).group().replace('"', '')))
+                        .get_file_to_include(html_files, os.path.basename(re.search(u'".*?"',
+                                             re.search(u'{%.*?%}', html_file.string_version)
+                                             .group()).group().replace('"', '')))
                     tmp = base_file.string_version
                     for find in re.findall(u'{%.*?%}', html_file.string_version):
                         if find.find('block') > 0 and find.find('endblock') == -1:
@@ -60,10 +60,11 @@ class Jinja2TemplateProcessor(abc_temp.AbstractTemplate):
 
         return return_list
 
-    def get_html_file_to_include(self, html_files, name_of_file):
+    def get_file_to_include(self, html_files, name_of_file):
         for html_file in html_files:
             if html_file.name == name_of_file:
                 return html_file
+        exit()
 
     def template_check_helper(self, find):
         try:

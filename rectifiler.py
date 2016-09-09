@@ -3,6 +3,7 @@
 import css_selectors
 import files
 import templanisator.jinja_template as jinja_
+import templanisator.jade_template as jade_
 import static_classes
 import rectifiler_report
 import sys
@@ -17,7 +18,7 @@ class CSSRectifier:
     def __init__(self):
         self.ignore = list()
         self.files = list()
-        self.css_files, self.html_files = list(), list()
+        self.css_files, self.html_files, self.jade_files = list(), list(), list()
         self.css_selectors = list()
         self.percent_of_usage = str()
 
@@ -32,6 +33,13 @@ class CSSRectifier:
         files_ = list()
         for file in self.files:
             if file.extention == 'html' or file.extention == 'htm':
+                files_.append(file)
+        return files_
+
+    def get_jade_files(self):
+        files_ = list()
+        for file in self.files:
+            if file.extention == 'jade':
                 files_.append(file)
         return files_
 
@@ -105,7 +113,9 @@ class CSSRectifier:
 
                     elif os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'html' or item[-3:] == 'htm'):
                         self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
-
+                    if template and template == 'jade':
+                        if os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'jade'):
+                            self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
                     if os.path.isdir(os.getcwd() + '/' + item) and item not in self.ignore:
                         os.chdir(os.getcwd() + '/' + item)
 
@@ -207,6 +217,10 @@ class CSSRectifier:
         if template:
             if template == 'jinja2':
                 self.html_files = jinja_.Jinja2TemplateProcessor().do_template_processor(self.html_files)
+            elif template == 'jade':
+                self.jade_files = [files.JadeFile(file.path) for file in self.get_jade_files()]
+                self.html_files = jade_.JadeTemplateProcessor()\
+                    .do_template_processor(self.html_files + self.jade_files)
             else:
                 print('Enter correct Template Processor.')
                 exit()
@@ -216,7 +230,7 @@ class CSSRectifier:
         print('Start find selectors....')
         for html_file in self.create_html_files():
             html_file.check_tags(html_file.string_version)
-            # html = html.replace(re.search(u'<head>(.+?)</head>', html).group(), '')
+            
             for combo_selector in self.css_selectors:
                 try:
                     static_classes.Finder.find_selectors_in_html(html_file.string_version, combo_selector)
@@ -228,7 +242,6 @@ class CSSRectifier:
                     else:
                         continue
                 except TypeError:
-                    print('bad')
                     continue
 
         self.calculate_percent_of_usage()

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import re
-import sys
 
 
 class MyFile:
@@ -9,6 +8,7 @@ class MyFile:
         self.path = path
         self.name = path.split('/')[-1]
         self.extention = path.split('/')[-1].split('.')[-1]
+        self.name_without_extention = self.name[:self.name.find('.')]
 
     def __str__(self):
         return 'File ' + self.name
@@ -35,16 +35,9 @@ class CSSFile(MyFile):
         return 'CSSFile ' + self.name
 
 
-class HTMLFile(MyFile):
-    def __init__(self, path):
-        self.base = False
-        with open(path, 'r+') as f:
-            self.html = f.read().replace('\t', '')
+class WEBFile:
+    def __init__(self):
         self.opened_and_closed_tags_check = False
-        self.includes = str()
-        with open(path) as html:
-            self.string_version = html.read().replace('\t', '').replace('\n', '')
-        super().__init__(path)
 
     def check_tags(self, html_file_as_string):
         optional_tags = ['html', 'head', 'body', 'li', 'dt',
@@ -71,6 +64,22 @@ class HTMLFile(MyFile):
         if opened_tags_count == closed_tags_count:
             self.opened_and_closed_tags_check = True
 
+
+class HTMLFile(MyFile, WEBFile):
+    def __init__(self, path):
+        self.base = False
+        with open(path, 'r+') as f:
+            self.html = f.read().replace('\t', '')
+        self.opened_and_closed_tags_check = False
+        self.includes = str()
+        with open(path) as html:
+            self.string_version = html.read().replace('\t', '').replace('\n', '')
+        super().__init__(path)
+
+    def clear_all(self):
+        self.includes = ''
+        self.base = False
+
     def __str__(self):
         return 'HTMLFile ' + self.name
 
@@ -79,3 +88,39 @@ class HTMLFile(MyFile):
 
     def __repr__(self):
         return 'HTMLFile ' + self.name
+
+
+class JadeFile(MyFile, WEBFile):
+    def __init__(self, path):
+        with open(path) as html:
+            self.string_version = html.read() + '\n'
+        self.base = False
+        self.opened_and_closed_tags_check = False
+        self.base_name = ''
+        self.includes = list()
+        super().__init__(path)
+
+    def add_include(self, included_file, find):
+        self.includes.append((included_file, find))
+
+    def add_base_name(self, base_name):
+        self.base_name = base_name
+
+    def clear_all(self):
+        self.includes = ''
+        self.base = False
+        if self.base_name != '':
+            str_with_extend = re.search(u'{% extend.*?%}', self.string_version).group()
+            if self.base_name.find('.') < 0:
+                new_base_name = self.base_name + '.jade'
+                new_str_with_extend = str_with_extend.replace(self.base_name, new_base_name)
+                self.string_version = self.string_version.replace(str_with_extend, new_str_with_extend)
+
+    def __str__(self):
+        return 'JadeFile ' + self.name
+
+    def __unicode__(self):
+        return 'JadeFile ' + self.name
+
+    def __repr__(self):
+        return 'JadeFile ' + self.name
