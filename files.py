@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import re
 
 
@@ -64,6 +65,9 @@ class WEBFile:
         if opened_tags_count == closed_tags_count:
             self.opened_and_closed_tags_check = True
 
+    def check_string_version(self):
+        pass
+
 
 class HTMLFile(MyFile, WEBFile):
     def __init__(self, path):
@@ -111,10 +115,36 @@ class JadeFile(MyFile, WEBFile):
         self.base = False
         if self.base_name != '':
             str_with_extend = re.search(u'{% extend.*?%}', self.string_version).group()
-            if self.base_name.find('.') < 0:
+            if os.path.basename(self.base_name).find('.') < 0:
                 new_base_name = self.base_name + '.jade'
                 new_str_with_extend = str_with_extend.replace(self.base_name, new_base_name)
                 self.string_version = self.string_version.replace(str_with_extend, new_str_with_extend)
+
+    def check_string_version(self):
+        if self.string_version.find('\t') >= 0:
+            self.string_version = self.string_version.replace('\t', '\t' * 2)
+
+    def check_star(self):
+        includes = ''
+        new_includes = list()
+        includes_names = list()
+        for each in self.string_version.split('\n'):
+            if each.find('include') >= 0 and each.find('*') > 0:
+                tab = each.count('\t')
+                for include in self.includes:
+                    if each == '\t' * tab + include[1].rstrip():
+                        if self != include[0]:
+                            includes = includes + each.replace('*', include[0].name) + '\n'
+                            includes_names.append(include[0].name)
+                self.string_version = self.string_version.replace(each, includes)
+        if includes != '':
+            for each in self.includes:
+                if each[0].name in includes_names:
+                    new_includes.append(
+                        (each[0], each[1].replace('*', each[0].name))
+                    )
+
+        self.includes = new_includes
 
     def __str__(self):
         return 'JadeFile ' + self.name

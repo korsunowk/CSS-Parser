@@ -221,9 +221,13 @@ class CSSRectifier:
                 self.jade_files = [files.JadeFile(file.path) for file in self.get_jade_files()]
                 self.html_files = jade_.JadeTemplateProcessor()\
                     .do_template_processor(self.html_files + self.jade_files)
+                for file in self.html_files:
+                    if file.name == '4.jade':
+                        print(file.string_version)
             else:
                 print('Enter correct Template Processor.')
                 exit()
+
         return self.html_files
 
     def find_selectors_in_html(self):
