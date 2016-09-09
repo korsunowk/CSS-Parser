@@ -154,3 +154,4 @@ class JadeFile(MyFile, WEBFile):
 
     def __repr__(self):
         return 'JadeFile ' + self.name
+

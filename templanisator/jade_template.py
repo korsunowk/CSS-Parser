@@ -144,3 +144,4 @@ class JadeTemplateProcessor(abstract_template.AbstractTemplate):
 
     def template_check_helper(self, find):
         pass
+
