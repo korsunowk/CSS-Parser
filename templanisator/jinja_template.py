@@ -64,7 +64,7 @@ class Jinja2TemplateProcessor(abc_temp.AbstractTemplate):
         for html_file in html_files:
             if html_file.name == name_of_file:
                 return html_file
-        exit()
+        raise FileExistsError
 
     def template_check_helper(self, find):
         try:

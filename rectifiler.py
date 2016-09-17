@@ -4,6 +4,7 @@ import css_selectors
 import files
 import templanisator.jinja_template as jinja_
 import templanisator.jade_template as jade_
+import templanisator.jsp_template as jsp_
 import static_classes
 import rectifiler_report
 import sys
@@ -23,25 +24,16 @@ class CSSRectifier:
         self.percent_of_usage = str()
 
     def get_css_files(self):
-        files_ = list()
-        for file in self.files:
-            if file.extention == 'css':
-                files_.append(file)
-        return files_
+        return [file for file in self.files if file.extention == 'css']
 
     def get_html_files(self):
-        files_ = list()
-        for file in self.files:
-            if file.extention == 'html' or file.extention == 'htm':
-                files_.append(file)
-        return files_
+        return [file for file in self.files if file.extention == 'html' or file.extention == 'htm']
 
     def get_jade_files(self):
-        files_ = list()
-        for file in self.files:
-            if file.extention == 'jade':
-                files_.append(file)
-        return files_
+        return [file for file in self.files if file.extention == 'jade']
+
+    def get_jsp_files(self):
+        return [file_ for file_ in self.files if file_.extention == 'jsp']
 
     def add_selector(self, _selector, css_file):
         if len(self.css_selectors) > 0:
@@ -113,9 +105,15 @@ class CSSRectifier:
 
                     elif os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'html' or item[-3:] == 'htm'):
                         self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
-                    if template and template == 'jade':
-                        if os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'jade'):
-                            self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
+
+                    if template:
+                        if template == 'jade':
+                            if os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'jade'):
+                                self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
+                        elif template == 'jsp':
+                            if os.path.isfile(os.getcwd() + '/' + item) and (item[-3:] == 'jsp'):
+                                self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
+
                     if os.path.isdir(os.getcwd() + '/' + item) and item not in self.ignore:
                         os.chdir(os.getcwd() + '/' + item)
 
@@ -215,19 +213,20 @@ class CSSRectifier:
     def create_html_files(self):
         self.html_files = [files.HTMLFile(file.path) for file in self.get_html_files()]
         if template:
+            print('Do Template Processor...')
             if template == 'jinja2':
                 self.html_files = jinja_.Jinja2TemplateProcessor().do_template_processor(self.html_files)
             elif template == 'jade':
                 self.jade_files = [files.JadeFile(file.path) for file in self.get_jade_files()]
                 self.html_files = jade_.JadeTemplateProcessor()\
                     .do_template_processor(self.html_files + self.jade_files)
-                for file in self.html_files:
-                    if file.name == '4.jade':
-                        print(file.string_version)
+            elif template == "jsp":
+                self.html_files = jsp_.JSPTemplateProcessor().do_template_processor(self.html_files +
+                                                                                    [files.JSPFile(file.path) for file
+                                                                                     in self.get_jsp_files()])
             else:
                 print('Enter correct Template Processor.')
                 exit()
-
         return self.html_files
 
     def find_selectors_in_html(self):

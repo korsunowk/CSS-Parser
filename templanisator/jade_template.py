@@ -36,7 +36,7 @@ class JadeTemplateProcessor(abstract_template.AbstractTemplate):
                             tmp = include[1].rstrip()
                             include.pop()
                             include.append(tmp)
-                            if str(include[1]).find('.') > 0:
+                            if str(include[1]).find('.') > 0 and include[1][-1] != '*':
                                 extention = include[1][str(include[1]).find('.')+1:]
                             if extention and include[1].find('*') == -1:
                                 included_file = self.get_file_to_include(
@@ -51,24 +51,46 @@ class JadeTemplateProcessor(abstract_template.AbstractTemplate):
                                         + '/' + str(include[1]) + '.jade'
                                     )
                                 else:
-                                    if include[1][-1] == '*':
-                                        included_file = self.get_file_to_include(
-                                            html_with_jade_files_for_include, os.path.dirname(file.path)
-                                            + '/' + str(include[1])
-                                        )
+                                    if include[1][-1] == '*' and include[1].find('*.*') == -1:
+                                        new_included_file = list()
+                                        if include[1].find('/**/') > 0:
+                                            for i in os.listdir(os.path.dirname(file.path) + '/' +
+                                                                        str(include[1].split('/**/')[0])):
+                                                if os.path.isdir(os.path.dirname(file.path) + '/' +
+                                                                         str(include[1].split('/**/')[0]) + '/' + i):
+                                                    included_file = self.get_file_to_include(
+                                                        html_with_jade_files_for_include, os.path.dirname(file.path)
+                                                        + '/' + str(include[1].split('/**/')[0])
+                                                        + '/' + i
+                                                        + '/' + str(include[1].split('/**/')[1])
+                                                    )
+                                                    for inc_file in included_file:
+                                                        new_included_file.append(inc_file)
+                                            included_file = new_included_file
+                                        else:
+                                            included_file = self.get_file_to_include(
+                                                html_with_jade_files_for_include, os.path.dirname(file.path)
+                                                + '/' + str(include[1])
+                                            )
                                     else:
-                                        included_file = self.get_file_to_include(
-                                            html_with_jade_files, os.path.dirname(file.path)
-                                            + '/' + str(include[1])
-                                        )
+                                        if include[1].find('*.*') > 0:
+                                            included_file = self.get_file_to_include(
+                                                html_with_jade_files, os.path.dirname(file.path)
+                                                + '/' + str(include[1][:-2])
+                                            )
+                                        else:
+                                            included_file = self.get_file_to_include(
+                                                html_with_jade_files, os.path.dirname(file.path)
+                                                + '/' + str(include[1])
+                                            )
 
                                 if included_file:
                                     if str(type(included_file)) == "<class 'list'>":
                                         for each in included_file:
                                             file.add_include(each, find)
                                     else:
-                                        html_with_jade_files_for_include\
-                                            .pop(html_with_jade_files_for_include.index(included_file))
+                                        # html_with_jade_files_for_include\
+                                        #     .pop(html_with_jade_files_for_include.index(included_file))
                                         file.add_include(included_file, find)
 
             else:
@@ -97,6 +119,7 @@ class JadeTemplateProcessor(abstract_template.AbstractTemplate):
                         not_alone_files.append(file)
                     if include[0] not in not_alone_files:
                         not_alone_files.append(include[0])
+
         for file in html_with_jade_files:
             if file.base is False:
                 if file.extention == 'jade' and file.string_version.find('extends') == 0:
@@ -109,7 +132,7 @@ class JadeTemplateProcessor(abstract_template.AbstractTemplate):
             try:
                 file.string_version = pyjade.simple_convert(file.string_version)
             except Exception as e:
-                print(e)
+                print('Error in %s file. "%s"' % (file.name, e))
                 exit()
 
         for file in html_with_jade_files:
@@ -141,7 +164,8 @@ class JadeTemplateProcessor(abstract_template.AbstractTemplate):
                         stars_files.append(file)
         if star:
             return stars_files
+        print('Included file %s does not exist.' % name_of_file)
+        exit()
 
     def template_check_helper(self, find):
         pass
-
