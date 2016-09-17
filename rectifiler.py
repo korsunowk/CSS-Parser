@@ -23,17 +23,8 @@ class CSSRectifier:
         self.css_selectors = list()
         self.percent_of_usage = str()
 
-    def get_css_files(self):
-        return [file for file in self.files if file.extention == 'css']
-
-    def get_html_files(self):
-        return [file for file in self.files if file.extention == 'html' or file.extention == 'htm']
-
-    def get_jade_files(self):
-        return [file for file in self.files if file.extention == 'jade']
-
-    def get_jsp_files(self):
-        return [file_ for file_ in self.files if file_.extention == 'jsp']
+    def get_some_files(self, *extentions):
+        return [file for file in self.files if file.extention in extentions]
 
     def add_selector(self, _selector, css_file):
         if len(self.css_selectors) > 0:
@@ -141,7 +132,7 @@ class CSSRectifier:
 
     def css_minification(self):
         print('Start minification....')
-        for file in self.get_css_files():
+        for file in self.get_some_files('css'):
             with open(file.path, 'r+') as f:
                 css_file = f.read()
                 css_file = css_file.replace("\t", "").replace("\n", "")
@@ -211,19 +202,19 @@ class CSSRectifier:
         self.find_selectors_in_html()
 
     def create_html_files(self):
-        self.html_files = [files.HTMLFile(file.path) for file in self.get_html_files()]
+        self.html_files = [files.HTMLFile(file.path) for file in self.get_some_files('html', 'htm')]
         if template:
             print('Do Template Processor...')
             if template == 'jinja2':
                 self.html_files = jinja_.Jinja2TemplateProcessor().do_template_processor(self.html_files)
             elif template == 'jade':
-                self.jade_files = [files.JadeFile(file.path) for file in self.get_jade_files()]
+                self.jade_files = [files.JadeFile(file.path) for file in self.get_some_files('jade')]
                 self.html_files = jade_.JadeTemplateProcessor()\
                     .do_template_processor(self.html_files + self.jade_files)
             elif template == "jsp":
                 self.html_files = jsp_.JSPTemplateProcessor().do_template_processor(self.html_files +
                                                                                     [files.JSPFile(file.path) for file
-                                                                                     in self.get_jsp_files()])
+                                                                                     in self.get_some_files('jsp')])
             else:
                 print('Enter correct Template Processor.')
                 exit()
