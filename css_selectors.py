@@ -90,7 +90,6 @@ class CSSSelector:
 
     def add_line(self, file):
         index = 0
-
         with open(file.path, 'r+') as f:
             for line in f:
                 if line.find(self.name) >= 0 and line.find('{') > 0:
