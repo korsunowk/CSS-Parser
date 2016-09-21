@@ -1,0 +1,13 @@
+{% extends "layout/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block description %}This page is an awesome home page.{% endblock %}
+
+{% block content %}
+			<div class="content">
+				{% include "partical/vacancy2.html" %}
+			</div>
+{% endblock %}
