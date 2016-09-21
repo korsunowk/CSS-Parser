@@ -17,3 +17,10 @@ class AbstractTemplate(metaclass=ABCMeta):
     @abstractclassmethod
     def template_check_helper(self, find):
         pass
+
+    @staticmethod
+    def path_generator(file_path, path):
+        from pathlib import Path
+        import os
+        return Path(os.path.dirname(file_path)).glob(path)
+

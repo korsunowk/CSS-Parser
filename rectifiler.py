@@ -19,7 +19,7 @@ class CSSRectifier:
     def __init__(self):
         self.ignore = list()
         self.files = list()
-        self.css_files, self.html_files, self.jade_files = list(), list(), list()
+        self.css_files, self.html_files = list(), list()
         self.css_selectors = list()
         self.percent_of_usage = str()
 
@@ -89,10 +89,7 @@ class CSSRectifier:
                         continue
                     if os.path.isfile(os.getcwd() + '/' + item) and item[-3:] == 'css':
                         if item not in self.ignore:
-                            # print(item)
                             self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
-                        # else:
-                        #     print('IGNORE: ' + item)
 
                     elif os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'html' or item[-3:] == 'htm'):
                         self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
@@ -208,13 +205,13 @@ class CSSRectifier:
             if template == 'jinja2':
                 self.html_files = jinja_.Jinja2TemplateProcessor().do_template_processor(self.html_files)
             elif template == 'jade':
-                self.jade_files = [files.JadeFile(file.path) for file in self.get_some_files('jade')]
-                self.html_files = jade_.JadeTemplateProcessor()\
-                    .do_template_processor(self.html_files + self.jade_files)
+                self.html_files = jade_.JadeTemplateProcessor().do_template_processor(
+                    self.html_files + [files.JadeFile(file.path) for file in self.get_some_files('jade')]
+                )
             elif template == "jsp":
-                self.html_files = jsp_.JSPTemplateProcessor().do_template_processor(self.html_files +
-                                                                                    [files.JSPFile(file.path) for file
-                                                                                     in self.get_some_files('jsp')])
+                self.html_files = jsp_.JSPTemplateProcessor().do_template_processor(
+                    self.html_files + [files.JSPFile(file.path) for file in self.get_some_files('jsp')]
+                )
             else:
                 print('Enter correct Template Processor.')
                 exit()
@@ -224,7 +221,6 @@ class CSSRectifier:
         print('Start find selectors....')
         for html_file in self.create_html_files():
             html_file.check_tags(html_file.string_version)
-            
             for combo_selector in self.css_selectors:
                 try:
                     static_classes.Finder.find_selectors_in_html(html_file.string_version, combo_selector)
@@ -268,8 +264,7 @@ class CSSRectifier:
                 usage_selectors.append(selector_)
         try:
             self.percent_of_usage = 'Percent of usage: %s' \
-                                    % str(round(len(usage_selectors)/len(self.css_selectors) * 100, 2)) \
-                                    + '%'
+                                    % str(round(len(usage_selectors)/len(self.css_selectors) * 100, 2)) + '%'
         except ZeroDivisionError:
             self.percent_of_usage = 'Percent of usage: 0%'
 

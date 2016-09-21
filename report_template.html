@@ -58,14 +58,16 @@
 					{% if selector.kind_usage %}
 						{% for alone_selector in selector.alone_selectors %}
 							{% if alone_selector.alone_usage %}
-								<td>
-									{{ alone_selector.name }}
-								</td>
-								<td>
-									{% for usage_file in alone_selector.usage_files %}
-										{{ usage_file.name }}<br>
-									{% endfor %}
-								</td>
+								{% if loop.first %}
+									<td>
+										{{ alone_selector.name }}
+									</td>
+									<td>
+										{% for usage_file in alone_selector.usage_files %}
+											{{ usage_file.name }}<br>
+										{% endfor %}
+									</td>
+								{% endif %}
 							{% endif %}
 						{% endfor %}
 					{% else %}

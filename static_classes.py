@@ -1001,7 +1001,6 @@ class Finder:
                         else:
                             result1 = Finder.find_selectors_in_html(html_file_as_string, fake_combo_selector,
                                                                     return_find=True)
-
                         str_to_search = Finder.get_full_code_on_selector(result1, html_file_as_string)
 
                         fake_combo_selector.alone_selectors.clear()
@@ -1054,8 +1053,6 @@ class Finder:
                         else:
                             result = Finder.find_selectors_in_html(html_file_as_string,
                                                                    fake_combo_selector, return_findall=True)
-                            # if combo_selector.name.find('.portfolio-case:hover') >= 0:
-                            #     print(fake_combo_selector.alone_selectors)
 
                         fake_combo_selector.alone_selectors.clear()
                         fake_combo_selector.alone_selectors.append(
@@ -1129,8 +1126,12 @@ class Finder:
                         re.match(u'</[^>]+>', str_to_search_begin).group(), ''
                     )
                     str_to_search_end = '</%s>' % str_to_search_begin[1:]
+
                 if str_to_search_end.count('>') > 1:
                     str_to_search_end = str_to_search_end[:-1]
+
+                if str_to_search_end.count('<') > 1:
+                    str_to_search_end = str_to_search_end[:str_to_search_end.find('>')+1]
 
                 broken_loop = 0
                 for_return_list = list()
@@ -1153,7 +1154,11 @@ class Finder:
                                     str_to_search = second_find
                                     loop = False
                                     break
-                                str_to_search = second_find
+                                if second_find.find(str_to_search) == 0:
+                                    str_to_search = second_find
+                                else:
+                                    continue
+
                             if loop is False:
                                 break
                             broken_loop += 1

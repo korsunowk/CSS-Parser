@@ -99,65 +99,24 @@ class JadeFile(MyFile, WEBFile):
             self.string_version = html.read() + '\n'
         self.base = False
         self.opened_and_closed_tags_check = False
-        self.base_name = ''
         self.includes = list()
+        self.base_names = list()
         super().__init__(path)
 
     def add_include(self, included_file, find):
         self.includes.append((included_file, find))
 
-    def add_base_name(self, base_name):
-        self.base_name = base_name
+    def add_base_name(self, old_name, new_name):
+        self.base_names.append(old_name)
+        self.base_names.append(new_name)
 
     def clear_all(self):
         self.includes = ''
         self.base = False
-        if self.base_name != '':
-            str_with_extend = re.search(u'{% extend.*?%}', self.string_version).group()
-            if os.path.basename(self.base_name).find('.') < 0:
-                new_base_name = self.base_name + '.jade'
-                new_str_with_extend = str_with_extend.replace(self.base_name, new_base_name)
-                self.string_version = self.string_version.replace(str_with_extend, new_str_with_extend)
 
     def check_string_version(self):
         if self.string_version.find('\t') >= 0:
             self.string_version = self.string_version.replace('\t', '\t' * 2)
-
-    def check_star(self):
-        includes = ''
-        new_includes = list()
-        includes_names = list()
-        for each in self.string_version.split('\n'):
-            if each.find('include') >= 0 and each.find('*') > 0:
-                tab = each.count('\t')
-                for include in self.includes:
-                    if include[1].find('/**/') > 0:
-                        if each == '\t' * tab + include[1].rstrip():
-                            if self != include[0]:
-                                includes = includes + each.replace('**/*',
-                                                                   os.path.basename(os.path.dirname(include[0].path))
-                                                                   + '/' + include[0].name) + '\n'
-                                includes_names.append(include[0].name)
-                    else:
-                        if each == '\t' * tab + include[1].rstrip():
-                            if self != include[0]:
-                                includes = includes + each.replace('*', include[0].name) + '\n'
-                                includes_names.append(include[0].name)
-                self.string_version = self.string_version.replace(each, includes)
-        if includes != '':
-            for each in self.includes:
-                if each[0].name in includes_names:
-                    if each[1].find('/**/*') > 0:
-                        new_includes.append(
-                            (each[0], each[1].replace('**/*', os.path.basename(os.path.dirname(each[0].path))
-                                                      + '/' + each[0].name))
-                        )
-                    else:
-                        new_includes.append(
-                            (each[0], each[1].replace('*', each[0].name))
-                        )
-        if len(new_includes) > 0:
-            self.includes = new_includes
 
     def __str__(self):
         return 'JadeFile ' + self.name

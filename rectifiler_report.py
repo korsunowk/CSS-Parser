@@ -14,6 +14,7 @@ except IndexError:
 except ValueError:
     pass
 
+
 class RectifilerReport:
     def __init__(self, **kwargs):
         self.env = jinja2.Environment(loader=jinja2.FileSystemLoader(BASEDIR))
