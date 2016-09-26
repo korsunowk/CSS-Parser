@@ -1,21 +1,19 @@
-from abc import ABCMeta, abstractclassmethod
+class AbstractTemplate:
+    def __init__(self, files):
+        self.files = files
+        self.do_template_processor()
 
-
-class AbstractTemplate(metaclass=ABCMeta):
-    @abstractclassmethod
-    def do_template_processor(self, html_files):
+    def do_template_processor(self):
         pass
 
-    @abstractclassmethod
-    def template_build(self, html_files):
-        pass
+    def get_file_to_include(self, name_of_file):
+        for file in self.files:
+            if file.path == name_of_file:
+                return file
+        print('Included file %s does not exist.' % name_of_file)
+        exit()
 
-    @abstractclassmethod
-    def get_file_to_include(self, html_files, name_of_file):
-        pass
-
-    @abstractclassmethod
-    def template_check_helper(self, find):
+    def include(self, file):
         pass
 
     @staticmethod

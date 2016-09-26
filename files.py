@@ -71,10 +71,10 @@ class WEBFile:
 class HTMLFile(MyFile, WEBFile):
     def __init__(self, path):
         self.base = False
+        self.includes = list()
         with open(path, 'r+') as f:
             self.html = f.read().replace('\t', '')
         self.opened_and_closed_tags_check = False
-        self.includes = str()
         with open(path) as html:
             self.string_version = html.read().replace('\t', '').replace('\n', '')
         super().__init__(path)

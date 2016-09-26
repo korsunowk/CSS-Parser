@@ -69,63 +69,20 @@ class CSSRectifier:
                     f.write(str(line)+'\n')
             self.load_ignore_files(dir_to_project)
 
-    def do_rectifier(self, home_directory, start=True, home='', old_dir=-1):
-        if start:
-            print('Start rectifiler....')
-            home = home_directory.replace("/" + home_directory.split('/')[-1], "")
-            self.load_ignore_files(dir_to_project=home_directory)
-            static_classes.Finder.load_ignore_pseudo()
+    def do_rectifier(self, home_directory):
+        self.load_ignore_files(dir_to_project=home_directory)
+        static_classes.Finder.load_ignore_pseudo()
 
-            return self.do_rectifier(
-                os.chdir(home_directory),
-                start=False,
-                home=home,
-            )
-        else:
-            if home_directory != home:
-                directory = os.listdir(os.getcwd())
-                for item in directory:
-                    if directory.index(item) <= old_dir:
-                        continue
-                    if os.path.isfile(os.getcwd() + '/' + item) and item[-3:] == 'css':
-                        if item not in self.ignore:
-                            self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
+        for root, dirs, files_ in os.walk(home_directory):
+            for one_dir in dirs:
+                if one_dir in self.ignore:
+                    dirs.remove(one_dir)
 
-                    elif os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'html' or item[-3:] == 'htm'):
-                        self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
-
-                    if template:
-                        if template == 'jade':
-                            if os.path.isfile(os.getcwd() + '/' + item) and (item[-4:] == 'jade'):
-                                self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
-                        elif template == 'jsp':
-                            if os.path.isfile(os.getcwd() + '/' + item) and (item[-3:] == 'jsp'):
-                                self.files.append(files.MyFile(path=(os.getcwd() + '/' + item)))
-
-                    if os.path.isdir(os.getcwd() + '/' + item) and item not in self.ignore:
-                        os.chdir(os.getcwd() + '/' + item)
-
-                        return self.do_rectifier(
-                            os.getcwd(),
-                            start=False,
-                            home=home,
-                        )
-                os.chdir('../')
-
-                if home_directory is None:
-                    return self.css_minification()
-                else:
-                    old_dir = os.listdir(os.getcwd()).index(home_directory.split('/')[-1])
-
-                return self.do_rectifier(
-                    os.getcwd(),
-                    start=False,
-                    home=home,
-                    old_dir=old_dir,
-                )
-
-            else:
-                return self.css_minification()
+            for file in files_:
+                if (file[-4:] == 'html' or file[-3:] == 'htm' or file[-3:] == 'css'
+                        or file[-4:] == 'jade' or file[-3:] == 'jsp') and file not in self.ignore:
+                    self.files.append(files.MyFile(path=os.path.join(root, file)))
+        return self.css_minification()
 
     def css_minification(self):
         print('Start minification....')
@@ -203,15 +160,15 @@ class CSSRectifier:
         if template:
             print('Do Template Processor...')
             if template == 'jinja2':
-                self.html_files = jinja_.Jinja2TemplateProcessor().do_template_processor(self.html_files)
+                self.html_files = jinja_.Jinja2TemplateProcessor(self.html_files).files
             elif template == 'jade':
-                self.html_files = jade_.JadeTemplateProcessor().do_template_processor(
+                self.html_files = jade_.JadeTemplateProcessor(
                     self.html_files + [files.JadeFile(file.path) for file in self.get_some_files('jade')]
-                )
+                ).files
             elif template == "jsp":
-                self.html_files = jsp_.JSPTemplateProcessor().do_template_processor(
+                self.html_files = jsp_.JSPTemplateProcessor(
                     self.html_files + [files.JSPFile(file.path) for file in self.get_some_files('jsp')]
-                )
+                ).files
             else:
                 print('Enter correct Template Processor.')
                 exit()

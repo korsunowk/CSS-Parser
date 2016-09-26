@@ -44,3 +44,52 @@ Python script for parsing css and html files.
 15. Добавлена возможность парсинга html страниц использующих шаблонизатор jade.
 
 16. Добавлена возможность парсинга html страниц использующих шаблонизатор JSP.
+
+
+
+# CSS-Rectifier
+Python script for parsing css and html files.
+
+The script written by Python language 3.4, which finds all the css and html files in the selected directory (the search is also made in the sub-folders of the selected folders) and tracks on the usability of each css-style in html files.
+
+Requirements:
+
+1. Python 3.x
+
+2. jinja2
+
+3. pyjade
+
+Capabilities :
+
+1. Search for any css selectors to html.
+
+2. Conclusion of unused or improperly recorded selectors.
+
+3. Check each html file on the ratio of the closed to the open tag.
+
+4. The presence of the configuration file to ignore certain css files or directories (node_modules).
+
+5. Available options when you run the script (--path full / path / to / project /). If not specified the script will work in a directory from which the script was called.
+
+6. Calculation% usage of css selectors.
+
+7. Minification all css files (including the removal of comments).
+
+8. Ability to obtain information on all the selectors (where the file is located and the line number in the file).
+
+9. If the selector is not properly described, and only part of it properly described, it is possible to know which file in html there selector, which correctly described (only works for id and class).
+
+10. Create a report on unused selectors in an html page.
+
+11. Ability to specify the need to display data in any form: a list or report.
+
+12. Added option --report path, through which the script creates a log file in <path>, if <path> is not specified, then the log file will be created in the folder of the script call.
+
+13. Added option --template name_of_template_processor, by which script string any together the desired patterns for a given template engine.
+
+14. Added the ability to parse html pages using the template jinja2.
+
+15. Added the ability to parse html pages using the template jade.
+
+16. Added the ability to parse html pages using the JSP template.

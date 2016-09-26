@@ -1,49 +1,29 @@
 import re
-from templanisator import abstract_template
+import templanisator.abstract_template as abs_temp
+import os
 
 
-class JSPTemplateProcessor(abstract_template.AbstractTemplate):
-    def do_template_processor(self, html_files):
-        includes = dict()
-        for file in html_files:
+class JSPTemplateProcessor(abs_temp.AbstractTemplate):
+    def __init__(self, files):
+        super().__init__(files)
+
+    def do_template_processor(self):
+        for file in self.files:
             self.check_file(file)
-            for find in re.findall(u'<%@[^>]+%>', file.string_version):
-                if find.find('include') > 0:
-                    if file.name in includes.keys():
-                        includes[file.name] = includes[file.name] + ', ' + find
-                    else:
-                        includes[file.name] = find
-        for html_file in html_files:
-            if html_file.name in includes.keys():
-                html_file.includes = includes[html_file.name]
-        return self.template_build(html_files)
+            self.include(file)
 
-    def template_build(self, html_files):
-        include_list = list()
-        for html_file in html_files:
-            if html_file.extention == "html" and html_file.includes:
-                for include_string in html_file.includes.split(', '):
-                    include_strings = ""
-                    for i in super().path_generator(html_file.path, self.template_check_helper(
-                            include_string.replace('"', "'"))):
-                        include_file = self.get_file_to_include(html_files, i.__str__())
-                        include_list.append(include_file.name)
-                        include_strings += include_file.string_version
-                    html_file.string_version = html_file.string_version.replace(include_string,
-                                                                                include_strings)
-        for file in html_files:
-            if re.search(u'<%@ include[^>]+%>', file.string_version):
-                html_files = self.do_template_processor(html_files)
-                break
-        return [html_file for html_file in html_files if html_file.name not in include_list]
-
-    def get_file_to_include(self, html_files, name_of_file):
-        for file in html_files:
-            if file.path == name_of_file:
-                return file
-
-    def template_check_helper(self, include_string):
-        return re.search(u"'.*?'", include_string).group().replace("'", '')
+    def include(self, file):
+        for include in re.findall(u'<%@ include.*?%>', file.string_version):
+            include_string = str()
+            for path in super().path_generator(file.path, re.search(u'".*?"', include.replace("'", '"')).group().strip('"')):
+                if os.path.isfile(path.__str__()) is False or file.path == path.__str__():
+                    continue
+                include_file = self.get_file_to_include(path.__str__())
+                self.check_file(include_file)
+                if include_file.string_version.find('<%@ include') >= 0:
+                    self.include(include_file)
+                include_string += include_file.string_version
+            file.string_version = file.string_version.replace(include, include_string)
 
     @staticmethod
     def check_file(file):
