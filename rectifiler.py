@@ -97,12 +97,9 @@ class CSSRectifier:
             space, media = False, False
             final_css = str()
             for i in range(len(css_file)):
-                if css_file[i].isspace() is True and css_file[i + 1] == '{' or \
-                        css_file[i].isspace() is True and css_file[i - 1] == ':'\
-                        or css_file[i].isspace() is True and css_file[i + 1] == '+' \
-                        or css_file[i].isspace() is True and css_file[i + 1] == '~' \
-                        or css_file[i].isspace() is True and css_file[i + 1] == '>' \
-                        or css_file[i].isspace() is True and css_file[i - 1] == ',':
+                if css_file[i].isspace() and (css_file[i + 1] == '{' or css_file[i - 1] == ':'
+                                              or css_file[i + 1] == '+' or css_file[i + 1] == '~'
+                                              or css_file[i + 1] == '>' or css_file[i - 1] == ','):
                     continue
                 elif css_file[i] == '@' and css_file[i:i + 6] == '@media'\
                         or css_file[i] == '@' and css_file[i:i+9] == '@-webkit-'\
