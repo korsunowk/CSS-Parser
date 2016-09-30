@@ -21,4 +21,3 @@ class AbstractTemplate:
         from pathlib import Path
         import os
         return Path(os.path.dirname(file_path)).glob(path)
-

@@ -11,28 +11,13 @@ class MyFile:
         self.name_without_extention = self.name[:self.name.find('.')]
 
     def __str__(self):
-        return 'File ' + self.name
+        return '%s ' % self.__class__.__name__ + self.name
 
     def __unicode__(self):
-        return 'File ' + self.name
+        return '%s ' % self.__class__.__name__ + self.name
 
     def __repr__(self):
-        return 'File ' + self.name
-
-
-class CSSFile(MyFile):
-    def __init__(self, path, minified):
-        self.minified_version = minified
-        super().__init__(path)
-
-    def __str__(self):
-        return 'CSSFile ' + self.name
-
-    def __unicode__(self):
-        return 'CSSFile ' + self.name
-
-    def __repr__(self):
-        return 'CSSFile ' + self.name
+        return '%s ' % self.__class__.__name__ + self.name
 
 
 class WEBFile:
@@ -67,6 +52,12 @@ class WEBFile:
         pass
 
 
+class CSSFile(MyFile):
+    def __init__(self, path, minified):
+        self.minified_version = minified
+        super().__init__(path)
+
+
 class HTMLFile(MyFile, WEBFile):
     def __init__(self, path):
         self.base = False
@@ -81,15 +72,6 @@ class HTMLFile(MyFile, WEBFile):
     def clear_all(self):
         self.includes = ''
         self.base = False
-
-    def __str__(self):
-        return 'HTMLFile ' + self.name
-
-    def __unicode__(self):
-        return 'HTMLFile ' + self.name
-
-    def __repr__(self):
-        return 'HTMLFile ' + self.name
 
 
 class JadeFile(MyFile, WEBFile):
@@ -117,15 +99,6 @@ class JadeFile(MyFile, WEBFile):
         if self.string_version.find('\t') >= 0:
             self.string_version = self.string_version.replace('\t', '\t' * 2)
 
-    def __str__(self):
-        return 'JadeFile ' + self.name
-
-    def __unicode__(self):
-        return 'JadeFile ' + self.name
-
-    def __repr__(self):
-        return 'JadeFile ' + self.name
-
 
 class JSPFile(MyFile, WEBFile):
     def __init__(self, path):
@@ -134,11 +107,3 @@ class JSPFile(MyFile, WEBFile):
         self.opened_and_closed_tags_check = False
         super().__init__(path)
 
-    def __str__(self):
-        return 'JSPFile ' + self.name
-
-    def __unicode__(self):
-        return 'JSPFile ' + self.name
-
-    def __repr__(self):
-        return 'JSPFile ' + self.name
