@@ -1,3 +1,7 @@
+from pathlib import Path
+import os
+
+
 class AbstractTemplate:
     def __init__(self, files):
         self.files = files
@@ -18,6 +22,4 @@ class AbstractTemplate:
 
     @staticmethod
     def path_generator(file_path, path):
-        from pathlib import Path
-        import os
         return Path(os.path.dirname(file_path)).glob(path)

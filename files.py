@@ -108,8 +108,5 @@ class JSPFile(MyFile, WEBFile):
         super().__init__(path)
 
 
-class EJSFile(MyFile, WEBFile):
-    def __init__(self, path):
-        with open(path) as jsp:
-            self.string_version = jsp.read() + '\n'
-        super().__init__(path)
+class EJSFile(JSPFile):
+    pass

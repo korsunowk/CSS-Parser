@@ -18,9 +18,9 @@ start_time = time.time()
 
 class CSSRectifier:
     def __init__(self):
-        self.ignore = list()
-        self.files = list()
+        self.ignore, self.files = list(), list()
         self.css_files, self.html_files = list(), list()
+
         self.css_selectors = list()
         self.percent_of_usage = str()
 
@@ -81,7 +81,7 @@ class CSSRectifier:
 
             for file in files_:
                 if (file[-4:] == 'html' or file[-3:] == 'htm' or file[-3:] == 'css'
-                        or file[-4:] == 'jade' or file[-3:] == 'jsp' or file[-3:] == 'ejs')\
+                        or file[-4:] == 'jade' or file[-3:] == 'jsp' or file[-3:] == 'ejs') \
                         and file not in self.ignore:
                     self.files.append(files.MyFile(path=os.path.join(root, file)))
         return self.css_minification()
@@ -158,17 +158,17 @@ class CSSRectifier:
         self.html_files = [files.HTMLFile(file.path) for file in self.get_some_files('html', 'htm')]
         if template:
             print('Do Template Processor...')
-            if template == 'jinja2':
+            if template.lower() == 'jinja2':
                 self.html_files = jinja_.Jinja2TemplateProcessor(self.html_files).files
-            elif template == 'jade':
+            elif template.lower() == 'jade':
                 self.html_files = jade_.JadeTemplateProcessor(
                     self.html_files + [files.JadeFile(file.path) for file in self.get_some_files('jade')]
                 ).files
-            elif template == "jsp":
+            elif template.lower() == "jsp":
                 self.html_files = jsp_.JSPTemplateProcessor(
                     self.html_files + [files.JSPFile(file.path) for file in self.get_some_files('jsp')]
                 ).files
-            elif template == "ejs":
+            elif template.lower() == "ejs":
                 self.html_files = ejs_.EJSTemplateProcessor(
                     self.html_files + [files.EJSFile(file.path) for file in self.get_some_files('ejs')]
                 ).files

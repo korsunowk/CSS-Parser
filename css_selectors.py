@@ -55,14 +55,12 @@ class CSSSelector:
         if self.parsed is False:
             first_bad_letter = 0
             word = ''
-            if self.is_alone() is True:
-                if self.name != '':
-                    self.alone_selectors.append(AloneCSSSelector(self.name))
+            if self.is_alone() is True and self.name != '':
+                self.alone_selectors.append(AloneCSSSelector(self.name))
             else:
                 for i in range(len(self.name)):
-                    if self.name[i] == '~':
-                        if self.name[i+1] == '=':
-                            continue
+                    if self.name[i] == '~' and self.name[i+1] == '=':
+                        continue
                     if static_classes.Check.check_letter(self.name[i]) is True:
                         if static_classes.Check.check_word(word) is True:
                             if self.name[first_bad_letter:i].isspace() is False:
@@ -89,11 +87,11 @@ class CSSSelector:
         return False
 
     def add_line(self, file):
-        index = 0
+        index = 1
         with open(file.path, 'r+') as f:
             for line in f:
                 if line.find(self.name) >= 0 and line.find('{') > 0:
-                    self.lines.append((index+1, file))
+                    self.lines.append((index, file))
                 index += 1
 
     def __str__(self):
@@ -110,14 +108,11 @@ class AloneCSSSelector:
     def __init__(self, name):
         self.name = name.lstrip()
         self.pseudo = self.has_pseudo()
-        self.alone_usage = False
-        self.alone_usage_for_file = False
+        self.alone_usage, self.alone_usage_for_file = False, False
         self.usage_files = list()
 
     def has_pseudo(self):
-        if self.name.find(':') >= 0:
-            return True
-        return False
+        return True if self.name.find(':') >= 0 else False
 
     def __str__(self):
         if self.alone_usage:
