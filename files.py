@@ -107,3 +107,9 @@ class JSPFile(MyFile, WEBFile):
         self.opened_and_closed_tags_check = False
         super().__init__(path)
 
+
+class EJSFile(MyFile, WEBFile):
+    def __init__(self, path):
+        with open(path) as jsp:
+            self.string_version = jsp.read() + '\n'
+        super().__init__(path)

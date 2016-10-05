@@ -5,6 +5,7 @@ import files
 import templanisator.jinja_template as jinja_
 import templanisator.jade_template as jade_
 import templanisator.jsp_template as jsp_
+import templanisator.ejs_template as ejs_
 import static_classes
 import rectifiler_report
 import sys
@@ -80,7 +81,8 @@ class CSSRectifier:
 
             for file in files_:
                 if (file[-4:] == 'html' or file[-3:] == 'htm' or file[-3:] == 'css'
-                        or file[-4:] == 'jade' or file[-3:] == 'jsp') and file not in self.ignore:
+                        or file[-4:] == 'jade' or file[-3:] == 'jsp' or file[-3:] == 'ejs')\
+                        and file not in self.ignore:
                     self.files.append(files.MyFile(path=os.path.join(root, file)))
         return self.css_minification()
 
@@ -165,6 +167,10 @@ class CSSRectifier:
             elif template == "jsp":
                 self.html_files = jsp_.JSPTemplateProcessor(
                     self.html_files + [files.JSPFile(file.path) for file in self.get_some_files('jsp')]
+                ).files
+            elif template == "ejs":
+                self.html_files = ejs_.EJSTemplateProcessor(
+                    self.html_files + [files.EJSFile(file.path) for file in self.get_some_files('ejs')]
                 ).files
             else:
                 print('Enter correct Template Processor.')
