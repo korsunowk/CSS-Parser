@@ -45,6 +45,8 @@ Python script for parsing css and html files.
 
 16. Добавлена возможность парсинга html страниц использующих шаблонизатор JSP.
 
+17. Добавлена возможность парсинга html страниц использующих шаблонизатор EJS.
+
 
 
 # CSS-Rectifier
@@ -93,3 +95,5 @@ Capabilities :
 15. Added the ability to parse html pages using the template jade.
 
 16. Added the ability to parse html pages using the JSP template.
+
+16. Added the ability to parse html pages using the EJS template.
