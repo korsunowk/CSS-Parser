@@ -17,8 +17,10 @@ class EJSTemplateProcessor(abs_temp.AbstractTemplate):
             for path in super().path_generator(file.path, include.replace('<% include ', '').split()[0]):
                 if os.path.isfile(path.__str__()) is False or file.path == path.__str__():
                     continue
+
                 include_file = self.get_file_to_include(path.__str__())
                 if include_file.string_version.find('<% include') >= 0:
                     self.include(include_file)
+
                 include_string += include_file.string_version
             file.string_version = file.string_version.replace(include, include_string)
