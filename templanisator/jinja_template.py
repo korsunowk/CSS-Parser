@@ -22,8 +22,10 @@ class Jinja2TemplateProcessor(abc_temp.AbstractTemplate):
                                                find_include[find_include.find('"') + 1:find_include.rfind('"')]):
                 if html_file.path == path.__str__():
                     continue
+
                 if os.path.isfile(path.__str__()):
                     included_file = self.get_file_to_include(name_of_file=path.__str__())
+
                     if included_file.string_version.find('{% include') > 0:
                         self.include(included_file)
                     include_string += included_file.string_version
@@ -39,8 +41,10 @@ class Jinja2TemplateProcessor(abc_temp.AbstractTemplate):
                 if os.path.isfile(os.path.realpath(path.__str__())):
                     base_file = self.get_file_to_include(name_of_file=os.path.realpath(path.__str__()))
                     tmp = base_file.string_version
+
                     if isinstance(html_file, files.JadeFile):
                         html_file.string_version = html_file.string_version.replace('\n', '')
+
                     for block in re.findall(u'{% block .*? %}.*?{% endblock %}', html_file.string_version):
                         tmp = \
                             tmp.replace(block[block.find('{%'):block.find('%}') + 2], block)
