@@ -27,9 +27,11 @@ class JadeTemplateProcessor(abc_temp.AbstractTemplate):
             for path in super().path_generator(file.path, include_path):
                 if path.__str__() == file.path:
                     continue
+
                 if os.path.isfile(path.__str__()):
                     included_file = self.get_file_to_include(path.__str__())
                     included_file.check_string_version()
+
                     if included_file.string_version.find('include ') > 0:
                         self.include(included_file)
                     included_string += included_file.string_version
