@@ -19,9 +19,7 @@ class CSSSelector:
                 break
 
         self.name = name[i:j]
-        self.files = list()
-        self.lines = list()
-        self.alone_selectors = list()
+        self.files = self.alone_selectors = self.lines = list()
         self.parsed = self.usage = self.kind_usage = False
 
         self.add_file(file)
