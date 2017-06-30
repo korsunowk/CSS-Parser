@@ -22,8 +22,7 @@ class CSSSelector:
         self.files = list()
         self.lines = list()
         self.alone_selectors = list()
-        self.parsed = False
-        self.usage = False
+        self.parsed = self.usage = False
         self.kind_usage = False
 
         self.add_file(file)
