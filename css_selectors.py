@@ -94,7 +94,7 @@ class CSSSelector:
         return "CSSSelector: '%s'" % self.name
 
     def __unicode__(self):
-        return "CSSSelector: '" + self.name + "'"
+        return "CSSSelector: '%s'" % self.name
 
     def __repr__(self):
         return "CSSSelector: '" + self.name + "'"
