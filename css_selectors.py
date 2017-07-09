@@ -91,7 +91,7 @@ class CSSSelector:
                 index += 1
 
     def __str__(self):
-        return "CSSSelector: '" + self.name + "'"
+        return "CSSSelector: '%s'" % self.name
 
     def __unicode__(self):
         return "CSSSelector: '" + self.name + "'"
