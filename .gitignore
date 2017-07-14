@@ -5,6 +5,7 @@ test.css
 find_css.py
 test.py
 2.htm
+env/
 __pycache__/
 templanisator/__pycache__/
 Report file from CSS Rectifiler.html
