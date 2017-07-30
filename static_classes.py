@@ -5,9 +5,7 @@ import css_selectors
 import os
 import sys
 
-BASEDIR = os.path.dirname(
-        os.path.realpath(sys.argv[0])
-    )
+BASEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
 class CSSRectifierFinderError(Exception):
