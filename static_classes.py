@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import re
-import css_selectors
 import os
 import sys
+
+import css_selectors
 
 BASEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
 
