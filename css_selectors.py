@@ -27,9 +27,9 @@ class CSSSelector:
     def change_usage(self):
         self.usage = True
 
-    def add_file(self, file):
-        if file not in self.files:
-            self.files.append(file)
+    def add_file(self, _file):
+        if _file not in self.files:
+            self.files.append(_file)
 
     def add_selector(self, selector_to_add):
         if selector_to_add != '':
