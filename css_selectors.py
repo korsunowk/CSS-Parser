@@ -9,8 +9,7 @@ class CSSSelector:
         for space in name:
             if space.isspace() is True:
                 i += 1
-            else:
-                break
+            break
         j = len(name)
         for space in name[::-1]:
             if space.isspace() is True:
